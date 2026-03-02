@@ -6,9 +6,11 @@ import 'package:news_app_clean_architecture/features/daily_news/presentation/pag
 import 'config/theme/app_themes.dart';
 import 'features/daily_news/presentation/bloc/article/remote/remote_article_bloc.dart';
 import 'injection_container.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   await initializeDependencies();
 
   runApp(const MyApp());

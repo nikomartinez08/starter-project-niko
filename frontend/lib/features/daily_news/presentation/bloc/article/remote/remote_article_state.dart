@@ -9,7 +9,7 @@ abstract class RemoteArticlesState extends Equatable {
   const RemoteArticlesState({this.articles,this.error});
   
   @override
-  List<Object> get props => [articles!, error!];
+  List<Object> get props => [articles ?? [], error ?? ""];
 }
 
 class RemoteArticlesLoading extends RemoteArticlesState {
