@@ -1,0 +1,46 @@
+﻿Resolving dependencies...
+flutter : Because 
+build_runner >=2.9.0 
+depends on build 
+^4.0.0 and 
+floor_generator 1.2.0 
+depends on build 
+^2.1.0, build_runner 
+>=2.9.0 is 
+incompatible with 
+floor_generator 1.2.0.
+En línea: 1 Carácter: 1
++ flutter pub get > 
+pub_get_2.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Because build   
+ _r...enerator 1.2.    
+0.:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+So, because news_app_cl
+ean_architecture 
+depends on both 
+floor_generator 1.2.0 
+and build_runner 
+^2.11.1, version 
+solving failed.
+
+
+You can try the 
+following suggestion 
+to make the pubspec 
+resolve:
+* Consider downgrading 
+your constraint on 
+build_runner: flutter 
+pub add 
+dev:build_runner:^2.1.2
+Failed to update 
+packages.

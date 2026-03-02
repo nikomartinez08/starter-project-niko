@@ -1,4 +1,5 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// Manually extended to include FavoriteDao implementation.
 
 part of 'app_database.dart';
 
@@ -62,11 +63,12 @@ class _$AppDatabase extends AppDatabase {
   }
 
   ArticleDao? _articleDAOInstance;
+  FavoriteDao? _favoriteDaoInstance;
 
   Future<sqflite.Database> open(String path, List<Migration> migrations,
       [Callback? callback]) async {
     final databaseOptions = sqflite.OpenDatabaseOptions(
-      version: 1,
+      version: 2,
       onConfigure: (database) async {
         await database.execute('PRAGMA foreign_keys = ON');
         await callback?.onConfigure?.call(database);
@@ -84,6 +86,9 @@ class _$AppDatabase extends AppDatabase {
         await database.execute(
             'CREATE TABLE IF NOT EXISTS `article` (`id` INTEGER, `author` TEXT, `title` TEXT, `description` TEXT, `url` TEXT, `urlToImage` TEXT, `publishedAt` TEXT, `content` TEXT, PRIMARY KEY (`id`))');
 
+        await database.execute(
+            'CREATE TABLE IF NOT EXISTS `favorite_article` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `externalId` TEXT, `author` TEXT, `title` TEXT, `description` TEXT, `url` TEXT, `urlToImage` TEXT, `publishedAt` TEXT, `content` TEXT, `savedAt` TEXT)');
+
         await callback?.onCreate?.call(database, version);
       },
     );
@@ -93,6 +98,11 @@ class _$AppDatabase extends AppDatabase {
   @override
   ArticleDao get articleDAO {
     return _articleDAOInstance ??= _$ArticleDao(database, changeListener);
+  }
+
+  @override
+  FavoriteDao get favoriteDAO {
+    return _favoriteDaoInstance ??= _$FavoriteDao(database, changeListener);
   }
 }
 
@@ -160,5 +170,100 @@ class _$ArticleDao extends ArticleDao {
   @override
   Future<void> deleteArticle(ArticleModel articleModel) async {
     await _articleModelDeletionAdapter.delete(articleModel);
+  }
+}
+
+class _$FavoriteDao extends FavoriteDao {
+  _$FavoriteDao(this.database, this.changeListener)
+      : _queryAdapter = QueryAdapter(database),
+        _favoriteArticleModelInsertionAdapter = InsertionAdapter(
+            database,
+            'favorite_article',
+            (FavoriteArticleModel item) => <String, Object?>{
+                  'id': item.id,
+                  'externalId': item.externalId,
+                  'author': item.author,
+                  'title': item.title,
+                  'description': item.description,
+                  'url': item.url,
+                  'urlToImage': item.urlToImage,
+                  'publishedAt': item.publishedAt,
+                  'content': item.content,
+                  'savedAt': item.savedAt?.toIso8601String(),
+                }),
+        _favoriteArticleModelDeletionAdapter = DeletionAdapter(
+            database,
+            'favorite_article',
+            ['id'],
+            (FavoriteArticleModel item) => <String, Object?>{
+                  'id': item.id,
+                  'externalId': item.externalId,
+                  'author': item.author,
+                  'title': item.title,
+                  'description': item.description,
+                  'url': item.url,
+                  'urlToImage': item.urlToImage,
+                  'publishedAt': item.publishedAt,
+                  'content': item.content,
+                  'savedAt': item.savedAt?.toIso8601String(),
+                });
+
+  final sqflite.DatabaseExecutor database;
+  final StreamController<String> changeListener;
+  final QueryAdapter _queryAdapter;
+  final InsertionAdapter<FavoriteArticleModel>
+      _favoriteArticleModelInsertionAdapter;
+  final DeletionAdapter<FavoriteArticleModel>
+      _favoriteArticleModelDeletionAdapter;
+
+  FavoriteArticleModel _rowToFavoriteArticleModel(Map<String, Object?> row) {
+    return FavoriteArticleModel(
+      id: row['id'] as int?,
+      externalId: row['externalId'] as String?,
+      author: row['author'] as String?,
+      title: row['title'] as String?,
+      description: row['description'] as String?,
+      url: row['url'] as String?,
+      urlToImage: row['urlToImage'] as String?,
+      publishedAt: row['publishedAt'] as String?,
+      content: row['content'] as String?,
+      savedAt: row['savedAt'] != null
+          ? DateTime.tryParse(row['savedAt'] as String)
+          : null,
+    );
+  }
+
+  @override
+  Future<List<FavoriteArticleModel>> getFavorites() async {
+    return _queryAdapter.queryList(
+        'SELECT * FROM favorite_article ORDER BY id DESC',
+        mapper: _rowToFavoriteArticleModel);
+  }
+
+  @override
+  Future<FavoriteArticleModel?> getFavoriteByExternalId(
+      String externalId) async {
+    return _queryAdapter.query(
+        'SELECT * FROM favorite_article WHERE externalId = ?1 LIMIT 1',
+        mapper: _rowToFavoriteArticleModel,
+        arguments: [externalId]);
+  }
+
+  @override
+  Future<void> insertFavorite(FavoriteArticleModel article) async {
+    await _favoriteArticleModelInsertionAdapter.insert(
+        article, OnConflictStrategy.replace);
+  }
+
+  @override
+  Future<void> deleteFavorite(FavoriteArticleModel article) async {
+    await _favoriteArticleModelDeletionAdapter.delete(article);
+  }
+
+  @override
+  Future<void> deleteFavoriteByExternalId(String externalId) async {
+    await _queryAdapter.queryNoReturn(
+        'DELETE FROM favorite_article WHERE externalId = ?1',
+        arguments: [externalId]);
   }
 }

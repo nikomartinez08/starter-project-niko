@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -18,33 +19,30 @@ class ArticleRepositoryImpl implements ArticleRepository {
   final AppDatabase _appDatabase;
   final _firestore = FirebaseFirestore.instance;
   final _storage = FirebaseStorage.instance;
-  
-  ArticleRepositoryImpl(this._newsApiService,this._appDatabase);
-  
+
+  ArticleRepositoryImpl(this._newsApiService, this._appDatabase);
+
   @override
   Future<DataState<List<ArticleModel>>> getNewsArticles() async {
-   try {
-    final httpResponse = await _newsApiService.getNewsArticles(
-      apiKey:newsAPIKey,
-      country:countryQuery,
-      category:categoryQuery,
-    );
-
-    if (httpResponse.response.statusCode == HttpStatus.ok) {
-      return DataSuccess(httpResponse.data);
-    } else {
-      return DataFailed(
-        DioError(
-          error: httpResponse.response.statusMessage,
-          response: httpResponse.response,
-          type: DioErrorType.response,
-          requestOptions: httpResponse.response.requestOptions
-        )
+    try {
+      final httpResponse = await _newsApiService.getNewsArticles(
+        apiKey: newsAPIKey,
+        country: countryQuery,
+        category: categoryQuery,
       );
+
+      if (httpResponse.response.statusCode == HttpStatus.ok) {
+        return DataSuccess(httpResponse.data);
+      } else {
+        return DataFailed(DioException(
+            error: httpResponse.response.statusMessage,
+            response: httpResponse.response,
+            type: DioExceptionType.badResponse,
+            requestOptions: httpResponse.response.requestOptions));
+      }
+    } on DioException catch (e) {
+      return DataFailed(e);
     }
-   } on DioError catch(e){
-     return DataFailed(e);
-   }
   }
 
   @override
@@ -54,21 +52,25 @@ class ArticleRepositoryImpl implements ArticleRepository {
 
   @override
   Future<void> removeArticle(ArticleEntity article) {
-    return _appDatabase.articleDAO.deleteArticle(ArticleModel.fromEntity(article));
+    return _appDatabase.articleDAO
+        .deleteArticle(ArticleModel.fromEntity(article));
   }
 
   @override
   Future<void> saveArticle(ArticleEntity article) {
-    return _appDatabase.articleDAO.insertArticle(ArticleModel.fromEntity(article));
+    return _appDatabase.articleDAO
+        .insertArticle(ArticleModel.fromEntity(article));
   }
-  
+
   @override
-  Future < void > createArticle(ArticleEntity article) async {
+  Future<void> createArticle(ArticleEntity article) async {
     try {
       String? imageUrl = article.urlToImage;
-      
+
       // Check if image URL is a local file path
-      if (imageUrl != null && imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
+      if (imageUrl != null &&
+          imageUrl.isNotEmpty &&
+          !imageUrl.startsWith('http')) {
         final file = File(imageUrl);
         if (await file.exists()) {
           final fileName = const Uuid().v4();
@@ -89,9 +91,8 @@ class ArticleRepositoryImpl implements ArticleRepository {
       };
 
       await _firestore.collection('articles').add(articleData);
-
     } catch (e) {
-      print("Error creating article: $e");
+      debugPrint("Error creating article: $e");
       rethrow;
     }
   }

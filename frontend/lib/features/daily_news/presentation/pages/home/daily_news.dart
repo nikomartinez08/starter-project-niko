@@ -8,6 +8,10 @@ import 'package:news_app_clean_architecture/features/daily_news/presentation/blo
 import 'package:news_app_clean_architecture/core/constants/constants.dart';
 
 import '../../../domain/entities/article.dart';
+import '../../../../profile/presentation/bloc/profile_bloc.dart';
+import '../../../../profile/presentation/bloc/profile_event.dart';
+import '../../../../profile/presentation/pages/profile_page.dart';
+import '../../../../../../injection_container.dart';
 
 class DailyNews extends StatefulWidget {
   const DailyNews({Key? key}) : super(key: key);
@@ -18,6 +22,14 @@ class DailyNews extends StatefulWidget {
 
 class _DailyNewsState extends State<DailyNews> {
   int _currentIndex = 0;
+  String _selectedCategory = 'All';
+  final List<String> _categories = [
+    'All',
+    'Technology',
+    'Politics',
+    'Sports',
+    'Finance'
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -60,10 +72,10 @@ class _DailyNewsState extends State<DailyNews> {
           ),
         ),
         GestureDetector(
-          onTap: () => _onShowSavedArticlesViewTapped(context),
+          onTap: () => _onShowFavoritesViewTapped(context),
           child: const Padding(
             padding: EdgeInsets.symmetric(horizontal: 14),
-            child: Icon(Icons.bookmark, color: Colors.black),
+            child: Icon(Icons.favorite, color: Colors.red),
           ),
         ),
       ],
@@ -98,10 +110,18 @@ class _DailyNewsState extends State<DailyNews> {
         }
         if (state is RemoteArticlesDone) {
           if (state.articles == null || state.articles!.isEmpty) {
-            return const Center(child: Text("No articles found"));
+            return Column(
+              children: [
+                _buildCategoryChips(),
+                const Expanded(child: Center(child: Text("No articles found"))),
+              ],
+            );
           }
           return CustomScrollView(
             slivers: [
+              SliverToBoxAdapter(
+                child: _buildCategoryChips(),
+              ),
               SliverToBoxAdapter(
                 child: _buildBreakingNews(context, state.articles![0]),
               ),
@@ -110,7 +130,8 @@ class _DailyNewsState extends State<DailyNews> {
                 sliver: SliverGrid(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      return _buildArticleGridItem(context, state.articles![index + 1]);
+                      return _buildArticleGridItem(
+                          context, state.articles![index + 1]);
                     },
                     childCount: state.articles!.length - 1,
                   ),
@@ -130,6 +151,44 @@ class _DailyNewsState extends State<DailyNews> {
     );
   }
 
+  Widget _buildCategoryChips() {
+    return SizedBox(
+      height: 60,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        itemCount: _categories.length,
+        itemBuilder: (context, index) {
+          final category = _categories[index];
+          final isSelected = _selectedCategory == category;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ChoiceChip(
+              label: Text(category),
+              selected: isSelected,
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() => _selectedCategory = category);
+                  if (category == 'All') {
+                    context.read<RemoteArticlesBloc>().add(const ResetFilter());
+                  } else {
+                    context
+                        .read<RemoteArticlesBloc>()
+                        .add(FilterArticles(category));
+                  }
+                }
+              },
+              selectedColor: Colors.black,
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.white : Colors.black,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildArticleGridItem(BuildContext context, ArticleEntity article) {
     return GestureDetector(
       onTap: () => _onArticlePressed(context, article),
@@ -139,7 +198,7 @@ class _DailyNewsState extends State<DailyNews> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: 0.1),
               spreadRadius: 1,
               blurRadius: 5,
               offset: const Offset(0, 3),
@@ -153,7 +212,8 @@ class _DailyNewsState extends State<DailyNews> {
             Expanded(
               flex: 5,
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
                 child: _buildGridImage(article),
               ),
             ),
@@ -215,18 +275,17 @@ class _DailyNewsState extends State<DailyNews> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                         Expanded(
-                           child: Text(
-                             article.author ?? 'Unknown',
-                             style: const TextStyle(
-                               fontSize: 10,
-                               color: Colors.grey
-                             ),
-                             maxLines: 1,
-                             overflow: TextOverflow.ellipsis,
-                           ),
-                         ),
-                        const Icon(Icons.more_horiz, size: 16, color: Colors.grey),
+                        Expanded(
+                          child: Text(
+                            article.author ?? 'Unknown',
+                            style: const TextStyle(
+                                fontSize: 10, color: Colors.grey),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const Icon(Icons.more_horiz,
+                            size: 16, color: Colors.grey),
                       ],
                     ),
                   ],
@@ -240,7 +299,10 @@ class _DailyNewsState extends State<DailyNews> {
   }
 
   Widget _buildProfileBody() {
-    return const Center(child: Text("Perfil Page"));
+    return BlocProvider<ProfileBloc>(
+      create: (context) => sl()..add(GetProfileEvent()),
+      child: const ProfilePage(),
+    );
   }
 
   Widget _buildBreakingNews(BuildContext context, ArticleEntity article) {
@@ -250,104 +312,117 @@ class _DailyNewsState extends State<DailyNews> {
     );
   }
 
-  Widget _buildBreakingNewsContent(BuildContext context, ArticleEntity article) {
+  Widget _buildBreakingNewsContent(
+      BuildContext context, ArticleEntity article) {
     final String imageUrl = article.urlToImage ?? '';
     final bool isImageValid = imageUrl.isNotEmpty && imageUrl != kDefaultImage;
 
     if (isImageValid) {
       return CachedNetworkImage(
         imageUrl: imageUrl,
-        imageBuilder: (context, imageProvider) => _buildBreakingNewsContainer(context, article, imageProvider),
-        placeholder: (context, url) => _buildBreakingNewsContainer(context, article, null, isLoading: true),
-        errorWidget: (context, url, error) => _buildBreakingNewsContainer(context, article, null),
+        imageBuilder: (context, imageProvider) =>
+            _buildBreakingNewsContainer(context, article, imageProvider),
+        placeholder: (context, url) => _buildBreakingNewsContainer(
+            context, article, null,
+            isLoading: true),
+        errorWidget: (context, url, error) =>
+            _buildBreakingNewsContainer(context, article, null),
       );
     } else {
       return _buildBreakingNewsContainer(context, article, null);
     }
   }
 
-  Widget _buildBreakingNewsContainer(BuildContext context, ArticleEntity article, ImageProvider? imageProvider, {bool isLoading = false}) {
+  Widget _buildBreakingNewsContainer(
+      BuildContext context, ArticleEntity article, ImageProvider? imageProvider,
+      {bool isLoading = false}) {
     return Container(
       margin: const EdgeInsets.all(10),
       height: 250,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        image: imageProvider != null ? DecorationImage(
-          image: imageProvider,
-          fit: BoxFit.cover,
-        ) : null,
-        color: isLoading ? Colors.grey[300] : Colors.grey, 
+        image: imageProvider != null
+            ? DecorationImage(
+                image: imageProvider,
+                fit: BoxFit.cover,
+              )
+            : null,
+        color: isLoading ? Colors.grey[300] : Colors.grey,
       ),
       child: Stack(
         children: [
           if (imageProvider == null && !isLoading)
-            const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.white54)),
+            const Center(
+                child:
+                    Icon(Icons.broken_image, size: 50, color: Colors.white54)),
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [
-              Colors.black.withOpacity(0.8),
-              Colors.transparent,
-            ],
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.8),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    "BREAKING",
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  article.title ?? '',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  article.publishedAt ?? '',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ],
+            ),
           ),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                "BREAKING",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              article.title ?? '',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 5),
-            Text(
-              article.publishedAt ?? '',
-              style: const TextStyle(color: Colors.white70),
-            ),
-          ],
-        ),
-      ),
         ],
       ),
     );
   }
 
-
   Widget _buildGridImage(ArticleEntity article) {
     final String imageUrl = article.urlToImage ?? '';
     // Check if URL is valid and not the broken default
-    final bool isImageValid = imageUrl.isNotEmpty && 
-                              imageUrl != kDefaultImage && 
-                              Uri.tryParse(imageUrl)?.hasAbsolutePath == true;
+    final bool isImageValid = imageUrl.isNotEmpty &&
+        imageUrl != kDefaultImage &&
+        Uri.tryParse(imageUrl)?.hasAbsolutePath == true;
 
     if (isImageValid) {
       return CachedNetworkImage(
         imageUrl: imageUrl,
         width: double.infinity,
         fit: BoxFit.cover,
-        placeholder: (context, url) => const Center(child: CupertinoActivityIndicator()),
+        placeholder: (context, url) =>
+            const Center(child: CupertinoActivityIndicator()),
         errorWidget: (context, url, error) => Container(
           color: Colors.grey[200],
           child: const Icon(Icons.broken_image, color: Colors.grey),
@@ -366,7 +441,7 @@ class _DailyNewsState extends State<DailyNews> {
     Navigator.pushNamed(context, '/ArticleDetails', arguments: article);
   }
 
-  void _onShowSavedArticlesViewTapped(BuildContext context) {
-    Navigator.pushNamed(context, '/SavedArticles');
+  void _onShowFavoritesViewTapped(BuildContext context) {
+    Navigator.pushNamed(context, '/Favorites');
   }
 }

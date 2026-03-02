@@ -1,0 +1,32 @@
+﻿dart : Because news_app
+_clean_architecture 
+depends on 
+flutter_test from sdk 
+which doesn't exist 
+(the Flutter SDK is 
+not available), 
+version solving failed.
+En línea: 1 Carácter: 1
++ dart run 
+build_runner build --de
+lete-conflicting-output
+s > build_out_ ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Because news_   
+ ap...solving faile    
+d.:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+
+Flutter users should 
+use `flutter pub` 
+instead of `dart pub`.
+

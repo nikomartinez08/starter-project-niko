@@ -1,0 +1,38 @@
+﻿flutter : Failed to 
+build build_runner:buil
+d_runner:
+En línea: 1 Carácter: 1
++ flutter pub run 
+build_runner build --de
+lete-conflicting-output
+s > bui ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Failed to bui   
+ ld...r:build_runne    
+r::String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+../../AppData/Local/Pub
+/Cache/hosted/pub.dev/b
+uild_runner-2.1.2/lib/s
+rc/build_script_generat
+e/bootstrap.dart:76:40:
+ Error: Method not 
+found: 
+'NullThrownError'.
+      final error = 
+e[0] as Object? ?? 
+NullThrownError();
+                       
+                
+^^^^^^^^^^^^^^^
+Failed to update 
+packages.

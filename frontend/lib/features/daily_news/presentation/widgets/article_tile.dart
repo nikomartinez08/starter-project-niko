@@ -1,7 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/article.dart';
+import '../../../favorites/domain/entities/favorite_article.dart';
+import '../../../favorites/presentation/bloc/favorites_bloc.dart';
+import '../../../favorites/presentation/bloc/favorites_event.dart';
+import '../../../favorites/presentation/bloc/favorites_state.dart';
+import '../bloc/article/remote/remote_article_bloc.dart';
+import '../bloc/article/remote/remote_article_event.dart';
 
 class ArticleWidget extends StatelessWidget {
   final ArticleEntity? article;
@@ -19,19 +26,49 @@ class ArticleWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: _onTap,
-      child: Container(
-        padding: const EdgeInsetsDirectional.only(
-            start: 14, end: 14, bottom: 7, top: 7),
-        height: MediaQuery.of(context).size.width / 2.2,
-        child: Row(
-          children: [
-            _buildImage(context),
-            _buildTitleAndDescription(),
-            _buildRemovableArea(),
-          ],
+    return Dismissible(
+      key: Key(article?.url ?? article?.title ?? UniqueKey().toString()),
+      background: Container(
+        color: Colors.red,
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: const Icon(Icons.thumb_down, color: Colors.white),
+      ),
+      secondaryBackground: Container(
+        color: Colors.green,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: const Icon(Icons.thumb_up, color: Colors.white),
+      ),
+      onDismissed: (direction) {
+        bool isLike = direction == DismissDirection.endToStart;
+        context
+            .read<RemoteArticlesBloc>()
+            .add(SwipeArticleEvent(article!, isLike));
+
+        if (isLike) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Interests saved (Like)')));
+          if (onArticlePressed != null) onArticlePressed!(article!);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Showing less of this (Dislike)')));
+        }
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _onTap,
+        child: Container(
+          padding: const EdgeInsetsDirectional.only(
+              start: 14, end: 14, bottom: 7, top: 7),
+          height: MediaQuery.of(context).size.width / 2.2,
+          child: Row(
+            children: [
+              _buildImage(context),
+              _buildTitleAndDescription(),
+              _buildRemovableArea(),
+            ],
+          ),
         ),
       ),
     );
@@ -48,7 +85,7 @@ class ArticleWidget extends StatelessWidget {
                   width: MediaQuery.of(context).size.width / 3,
                   height: double.maxFinite,
                   decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       image: DecorationImage(
                           image: imageProvider, fit: BoxFit.cover)),
                 ),
@@ -63,7 +100,7 @@ class ArticleWidget extends StatelessWidget {
                   height: double.maxFinite,
                   child: const CupertinoActivityIndicator(),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                   ),
                 ),
               ),
@@ -77,7 +114,7 @@ class ArticleWidget extends StatelessWidget {
                   height: double.maxFinite,
                   child: const Icon(Icons.error),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                   ),
                 ),
               ),
@@ -145,7 +182,43 @@ class ArticleWidget extends StatelessWidget {
         ),
       );
     }
-    return Container();
+
+    // Check if favorited and display dynamic heart status.
+    return BlocBuilder<FavoritesBloc, FavoritesState>(
+      buildWhen: (previous, current) {
+        return current is FavoritesLoaded;
+      },
+      builder: (context, state) {
+        bool isFavorited = false;
+        if (state is FavoritesLoaded) {
+          isFavorited = state.favorites.any((fav) => fav.url == article?.url);
+        }
+        return GestureDetector(
+          onTap: () {
+            if (article != null) {
+              final favEntity = FavoriteArticleEntity(
+                externalId: article!.url,
+                author: article!.author,
+                title: article!.title,
+                description: article!.description,
+                url: article!.url,
+                urlToImage: article!.urlToImage,
+                publishedAt: article!.publishedAt,
+                content: article!.content,
+              );
+              context.read<FavoritesBloc>().add(ToggleFavoriteEvent(favEntity));
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Icon(
+              isFavorited ? Icons.favorite : Icons.favorite_border,
+              color: isFavorited ? Colors.red : Colors.grey,
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _onTap() {

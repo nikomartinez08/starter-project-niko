@@ -1,0 +1,36 @@
+﻿Resolving dependencies...
+flutter : Because 
+build_runner >=2.9.0 
+depends on build 
+^4.0.0 and 
+retrofit_generator 
+3.0.1+1 depends on 
+build ^2.0.1, 
+build_runner >=2.9.0 
+is incompatible with 
+retrofit_generator 
+3.0.1+1.
+En línea: 1 Carácter: 1
++ flutter pub get > 
+pub_get_3.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Because build   
+ _r...erator 3.0.1+    
+1.:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+So, because news_app_cl
+ean_architecture 
+depends on both 
+retrofit_generator 
+3.0.1+1 and 
+build_runner ^2.11.1, 
+version solving failed.
+Failed to update 
+packages.

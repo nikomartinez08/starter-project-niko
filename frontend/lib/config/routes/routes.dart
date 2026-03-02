@@ -5,6 +5,11 @@ import '../../features/daily_news/presentation/pages/article_detail/article_deta
 import '../../features/daily_news/presentation/pages/home/daily_news.dart';
 import '../../features/daily_news/presentation/pages/saved_article/saved_article.dart';
 import '../../features/daily_news/presentation/pages/upload_article/upload_article.dart';
+import '../../features/favorites/presentation/pages/favorites_page.dart';
+import '../../features/favorites/presentation/bloc/favorites_bloc.dart';
+import '../../features/favorites/presentation/bloc/favorites_event.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../injection_container.dart';
 
 class AppRoutes {
   static Route onGenerateRoutes(RouteSettings settings) {
@@ -20,6 +25,14 @@ class AppRoutes {
 
       case '/UploadArticle':
         return _materialRoute(const UploadArticlePage());
+
+      case '/Favorites':
+        return _materialRoute(
+          BlocProvider<FavoritesBloc>(
+            create: (context) => sl()..add(GetFavorites()),
+            child: const FavoritesPage(),
+          ),
+        );
 
       default:
         return _materialRoute(const DailyNews());

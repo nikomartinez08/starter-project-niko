@@ -1,0 +1,60 @@
+﻿Analyzing frontend...                                           
+
+   info - The type parameter name 'Type' matches a visible type name - lib\core\usecase\usecase.dart:1:24 - avoid_types_as_parameter_names
+  error - Missing concrete implementation of 'getter abstract class AppDatabase extends FloorDatabase.favoriteDAO' - lib\features\daily_news\data\data_sources\local\app_database.g.dart:59:7 - non_abstract_class_inherits_abstract_member
+   info - Don't invoke 'print' in production code - lib\features\daily_news\data\repository\article_repository_impl.dart:94:7 - avoid_print
+  error - The name 'RemoteArticlesEvent' isn't a type, so it can't be used as a type argument - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:9:39 - non_type_as_type_argument
+  error - The name 'GetArticles' isn't a type, so it can't be used as a type argument - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:23:9 - non_type_as_type_argument
+  error - The name 'SwipeArticleEvent' isn't a type, so it can't be used as a type argument - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:24:9 - non_type_as_type_argument
+  error - The name 'FilterArticles' isn't a type, so it can't be used as a type argument - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:25:9 - non_type_as_type_argument
+  error - The name 'ResetFilter' isn't a type, so it can't be used as a type argument - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:26:9 - non_type_as_type_argument
+  error - Undefined class 'GetArticles' - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:30:22 - undefined_class
+  error - Undefined class 'SwipeArticleEvent' - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:45:23 - undefined_class
+   info - Statements in an if should be enclosed in a block - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:50:57 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:51:64 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:52:68 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:53:96 - curly_braces_in_flow_control_structures
+  error - Undefined class 'FilterArticles' - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:67:25 - undefined_class
+  error - Undefined class 'ResetFilter' - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:72:22 - undefined_class
+   info - Statements in an if should be enclosed in a block - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:86:61 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:87:68 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:88:72 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\daily_news\presentation\bloc\article\remote\remote_article_bloc.dart:89:100 - curly_braces_in_flow_control_structures
+  error - Undefined class 'ArticleEntity' - lib\features\daily_news\presentation\bloc\article\remote\remote_article_event.dart:10:9 - undefined_class
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\daily_news\presentation\pages\home\daily_news.dart:192:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\daily_news\presentation\pages\home\daily_news.dart:345:28 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\daily_news\presentation\widgets\article_tile.dart:84:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\daily_news\presentation\widgets\article_tile.dart:99:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\daily_news\presentation\widgets\article_tile.dart:113:41 - deprecated_member_use
+  error - Target of URI doesn't exist: '../models/favorite_article_model.dart' - lib\features\favorites\data\data_sources\local\favorites_dao.dart:2:8 - uri_does_not_exist
+  error - The name 'FavoriteArticleModel' isn't a type, so it can't be used as a type argument - lib\features\favorites\data\data_sources\local\favorites_dao.dart:7:15 - non_type_as_type_argument
+  error - The name 'FavoriteArticleModel' isn't a type, so it can't be used as a type argument - lib\features\favorites\data\data_sources\local\favorites_dao.dart:10:10 - non_type_as_type_argument
+  error - Undefined class 'FavoriteArticleModel' - lib\features\favorites\data\data_sources\local\favorites_dao.dart:13:31 - undefined_class
+  error - Undefined class 'FavoriteArticleModel' - lib\features\favorites\data\data_sources\local\favorites_dao.dart:16:31 - undefined_class
+  error - Target of URI doesn't exist: '../models/favorite_article_model.dart' - lib\features\favorites\data\data_sources\remote\favorites_remote_data_source.dart:3:8 - uri_does_not_exist
+  error - The name 'FavoriteArticleModel' isn't a type, so it can't be used as a type argument - lib\features\favorites\data\data_sources\remote\favorites_remote_data_source.dart:6:15 - non_type_as_type_argument
+  error - Undefined class 'FavoriteArticleModel' - lib\features\favorites\data\data_sources\remote\favorites_remote_data_source.dart:7:29 - undefined_class
+  error - The name 'FavoriteArticleModel' isn't a type, so it can't be used as a type argument - lib\features\favorites\data\data_sources\remote\favorites_remote_data_source.dart:30:15 - non_type_as_type_argument
+  error - The method 'FavoriteArticleModel' isn't defined for the type 'FavoritesRemoteDataSourceImpl' - lib\features\favorites\data\data_sources\remote\favorites_remote_data_source.dart:34:14 - undefined_method
+  error - Undefined class 'FavoriteArticleModel' - lib\features\favorites\data\data_sources\remote\favorites_remote_data_source.dart:58:29 - undefined_class
+warning - Unused import: 'dart:io' - lib\features\favorites\data\repository\favorites_repository_impl.dart:6:8 - unused_import
+  error - Target of URI doesn't exist: '../../domain/entities/profile_entities.dart' - lib\features\profile\data\data_sources\remote\profile_remote_data_source.dart:3:8 - uri_does_not_exist
+  error - The name 'UserProfileDataEntity' isn't a type, so it can't be used as a type argument - lib\features\profile\data\data_sources\remote\profile_remote_data_source.dart:6:10 - non_type_as_type_argument
+  error - The name 'UserPostEntity' isn't a type, so it can't be used as a type argument - lib\features\profile\data\data_sources\remote\profile_remote_data_source.dart:7:15 - non_type_as_type_argument
+  error - The name 'UserPostEntity' isn't a type, so it can't be used as a type argument - lib\features\profile\data\data_sources\remote\profile_remote_data_source.dart:39:15 - non_type_as_type_argument
+  error - The method 'UserPostEntity' isn't defined for the type 'ProfileRemoteDataSourceImpl' - lib\features\profile\data\data_sources\remote\profile_remote_data_source.dart:48:14 - undefined_method
+  error - The name 'UserProfileDataEntity' isn't a type, so it can't be used as a type argument - lib\features\profile\data\data_sources\remote\profile_remote_data_source.dart:58:10 - non_type_as_type_argument
+  error - The method 'UserProfileDataEntity' isn't defined for the type 'ProfileRemoteDataSourceImpl' - lib\features\profile\data\data_sources\remote\profile_remote_data_source.dart:68:12 - undefined_method
+warning - Unused import: '../bloc/profile_event.dart' - lib\features\profile\presentation\pages\profile_page.dart:5:8 - unused_import
+  error - Target of URI doesn't exist: '../../domain/entities/user_preferences.dart' - lib\features\recommendation\data\data_sources\remote\recommendation_remote_data_source.dart:3:8 - uri_does_not_exist
+  error - The name 'UserPreferencesEntity' isn't a type, so it can't be used as a type argument - lib\features\recommendation\data\data_sources\remote\recommendation_remote_data_source.dart:6:10 - non_type_as_type_argument
+  error - Undefined class 'UserPreferencesEntity' - lib\features\recommendation\data\data_sources\remote\recommendation_remote_data_source.dart:7:34 - undefined_class
+  error - The name 'UserPreferencesEntity' isn't a type, so it can't be used as a type argument - lib\features\recommendation\data\data_sources\remote\recommendation_remote_data_source.dart:29:10 - non_type_as_type_argument
+  error - The name 'UserPreferencesEntity' isn't a class - lib\features\recommendation\data\data_sources\remote\recommendation_remote_data_source.dart:32:20 - creation_with_non_type
+  error - The method 'UserPreferencesEntity' isn't defined for the type 'RecommendationRemoteDataSourceImpl' - lib\features\recommendation\data\data_sources\remote\recommendation_remote_data_source.dart:36:12 - undefined_method
+  error - Undefined class 'UserPreferencesEntity' - lib\features\recommendation\data\data_sources\remote\recommendation_remote_data_source.dart:44:34 - undefined_class
+   info - Statements in an if should be enclosed in a block - lib\features\recommendation\data\repository\recommendation_repository_impl.dart:94:59 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\recommendation\data\repository\recommendation_repository_impl.dart:95:66 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\recommendation\data\repository\recommendation_repository_impl.dart:96:70 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\recommendation\data\repository\recommendation_repository_impl.dart:97:69 - curly_braces_in_flow_control_structures
+
