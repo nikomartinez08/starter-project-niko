@@ -221,9 +221,10 @@ class _DailyNewsState extends State<DailyNews> {
             Expanded(
               flex: 4,
               child: Padding(
-                padding: const EdgeInsets.all(10.0),
+                padding: const EdgeInsets.all(8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Badge/Category
                     Row(
@@ -258,19 +259,17 @@ class _DailyNewsState extends State<DailyNews> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
                     // Title
                     Text(
                       article.title ?? 'No Title',
-                      maxLines: 3,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontSize: 13,
                         color: Colors.black87,
                       ),
                     ),
-                    const Spacer(),
                     // Footer with options
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
