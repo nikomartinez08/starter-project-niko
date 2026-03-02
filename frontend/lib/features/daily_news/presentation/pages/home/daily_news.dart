@@ -36,24 +36,8 @@ class _DailyNewsState extends State<DailyNews> {
     return Scaffold(
       appBar: _buildAppBar(context),
       body: _currentIndex == 0 ? _buildHomeBody() : _buildProfileBody(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Inicio',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
-        ],
-      ),
+      extendBody: true,
+      bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
 
@@ -67,18 +51,126 @@ class _DailyNewsState extends State<DailyNews> {
         GestureDetector(
           onTap: () => Navigator.pushNamed(context, '/UploadArticle'),
           child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14),
+            padding: EdgeInsets.symmetric(horizontal: 10),
             child: Icon(Icons.add, color: Colors.black),
           ),
         ),
         GestureDetector(
           onTap: () => _onShowFavoritesViewTapped(context),
           child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14),
+            padding: EdgeInsets.symmetric(horizontal: 10),
             child: Icon(Icons.favorite, color: Colors.red),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildBottomNavBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 32, right: 32, bottom: 20),
+      child: SizedBox(
+        height: 65,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            // La píldora flotante
+            Container(
+              height: 65,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(40),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Inicio
+                  _buildNavItem(
+                    icon: Icons.home,
+                    label: 'Inicio',
+                    index: 0,
+                  ),
+                  // Espacio para el botón central
+                  const SizedBox(width: 64),
+                  // Perfil
+                  _buildNavItem(
+                    icon: Icons.person,
+                    label: 'Perfil',
+                    index: 1,
+                  ),
+                ],
+              ),
+            ),
+            // Botón central TikTok elevado
+            Positioned(
+              top: -22,
+              child: GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/NewsFeed'),
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        blurRadius: 14,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 38,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required int index,
+  }) {
+    final bool isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            color: isSelected ? Colors.black : Colors.grey,
+            size: 26,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: isSelected ? Colors.black : Colors.grey,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
