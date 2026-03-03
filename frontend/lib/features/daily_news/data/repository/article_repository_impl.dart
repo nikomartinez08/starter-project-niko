@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:uuid/uuid.dart';
 import 'package:dio/dio.dart';
@@ -92,6 +93,7 @@ class ArticleRepositoryImpl implements ArticleRepository {
       }
 
       final articleData = {
+        'authorId': FirebaseAuth.instance.currentUser?.uid,
         'author': article.author,
         'title': article.title,
         'description': article.description,
@@ -99,11 +101,12 @@ class ArticleRepositoryImpl implements ArticleRepository {
         'urlToImage': imageUrl,
         'publishedAt': article.publishedAt,
         'content': article.content,
+        'createdAt': FieldValue.serverTimestamp(),
       };
 
       try {
         await _firestore
-            .collection('articles')
+            .collection('posts')
             .add(articleData)
             .timeout(const Duration(seconds: 15));
       } on TimeoutException catch (te) {

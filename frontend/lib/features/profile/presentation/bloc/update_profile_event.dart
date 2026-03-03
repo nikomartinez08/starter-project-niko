@@ -1,14 +1,5 @@
-import 'package:equatable/equatable.dart';
 import '../../domain/entities/profile_entities.dart';
-
-abstract class ProfileEvent extends Equatable {
-  const ProfileEvent();
-
-  @override
-  List<Object?> get props => [];
-}
-
-class GetProfileEvent extends ProfileEvent {}
+import 'profile_event.dart';
 
 class UpdateProfileEvent extends ProfileEvent {
   final UserProfileDataEntity profile;

@@ -31,6 +31,17 @@ import 'package:news_app_clean_architecture/features/profile/data/repository/pro
 import 'package:news_app_clean_architecture/features/profile/data/data_sources/remote/profile_remote_data_source.dart';
 import 'package:news_app_clean_architecture/features/profile/domain/usecases/get_profile_data.dart';
 import 'package:news_app_clean_architecture/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:news_app_clean_architecture/features/auth/data/data_sources/remote/auth_firebase_service.dart';
+import 'package:news_app_clean_architecture/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/repositories/auth_repository.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/usecases/get_current_user_usecase.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_in_usecase.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_out_usecase.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/usecases/delete_account_usecase.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_up_usecase.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_in_with_google_usecase.dart';
+import 'package:news_app_clean_architecture/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 final sl = GetIt.instance;
 
@@ -56,6 +67,11 @@ Future<void> initializeDependencies() async {
   // Firebase
   sl.registerSingleton<FirebaseFirestore>(FirebaseFirestore.instance);
   sl.registerSingleton<FirebaseAuth>(FirebaseAuth.instance);
+  sl.registerSingleton<GoogleSignIn>(GoogleSignIn());
+
+  // Auth Data Source
+  sl.registerSingleton<AuthRemoteDataSource>(
+      AuthRemoteDataSourceImpl(sl(), sl()));
 
   // Favorites Data Source
   sl.registerSingleton<FavoritesRemoteDataSource>(
@@ -70,6 +86,9 @@ Future<void> initializeDependencies() async {
       ProfileRemoteDataSourceImpl(sl(), sl()));
 
   // Repositories
+  sl.registerSingleton<AuthRepository>(
+      AuthRepositoryImpl(sl()));
+
   sl.registerSingleton<FavoritesRepository>(
       FavoritesRepositoryImpl(database.favoriteDAO, sl()));
 
@@ -84,6 +103,13 @@ Future<void> initializeDependencies() async {
   sl.registerSingleton<ArticleRepository>(ArticleRepositoryImpl(sl(), sl()));
 
   //UseCases
+  sl.registerSingleton<SignInUseCase>(SignInUseCase(sl()));
+  sl.registerSingleton<SignInWithGoogleUseCase>(SignInWithGoogleUseCase(sl()));
+  sl.registerSingleton<SignUpUseCase>(SignUpUseCase(sl()));
+  sl.registerSingleton<SignOutUseCase>(SignOutUseCase(sl()));
+  sl.registerSingleton<DeleteAccountUseCase>(DeleteAccountUseCase(sl()));
+  sl.registerSingleton<GetCurrentUserUseCase>(GetCurrentUserUseCase(sl()));
+
   sl.registerSingleton<GetArticleUseCase>(GetArticleUseCase(sl()));
 
   sl.registerSingleton<GetSavedArticleUseCase>(GetSavedArticleUseCase(sl()));
@@ -109,6 +135,9 @@ Future<void> initializeDependencies() async {
   sl.registerSingleton<GetProfileDataUseCase>(GetProfileDataUseCase(sl()));
 
   //Blocs
+  sl.registerFactory<AuthBloc>(
+      () => AuthBloc(sl(), sl(), sl(), sl(), sl(), sl()));
+
   sl.registerFactory<RemoteArticlesBloc>(
       () => RemoteArticlesBloc(sl(), sl(), sl()));
 

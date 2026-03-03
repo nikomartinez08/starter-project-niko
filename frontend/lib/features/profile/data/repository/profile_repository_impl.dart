@@ -8,22 +8,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
   ProfileRepositoryImpl(this._remoteDataSource);
 
   @override
-  Future<int> getFollowersCount() {
-    return _remoteDataSource.getFollowersCount();
-  }
-
-  @override
-  Future<int> getFollowingCount() {
-    return _remoteDataSource.getFollowingCount();
-  }
-
-  @override
-  Future<List<UserPostEntity>> getUserPosts() {
-    return _remoteDataSource.getUserPosts();
-  }
-
-  @override
-  Future<UserProfileDataEntity> getUserProfile() {
+  Stream<UserProfileDataEntity> getUserProfile() {
     return _remoteDataSource.getUserProfile();
   }
 }

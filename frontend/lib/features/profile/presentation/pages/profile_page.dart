@@ -4,9 +4,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/profile_bloc.dart';
 import '../bloc/profile_state.dart';
 import '../../domain/entities/profile_entities.dart';
+import '../bloc/profile_event.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<ProfileBloc>().add(GetProfileEvent());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,11 +62,16 @@ class ProfilePage extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            // User Header Info
-            const CircleAvatar(
+            // User Header Info with Profile Picture
+            CircleAvatar(
               radius: 50,
               backgroundColor: Colors.blueAccent,
-              child: Icon(Icons.person, size: 50, color: Colors.white),
+              backgroundImage: profile.photoUrl != null && profile.photoUrl!.isNotEmpty
+                  ? NetworkImage(profile.photoUrl!)
+                  : null,
+              child: profile.photoUrl == null || profile.photoUrl!.isEmpty
+                  ? const Icon(Icons.person, size: 50, color: Colors.white)
+                  : null,
             ),
             const SizedBox(height: 10),
             Text(
@@ -112,22 +129,62 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildPostsTab(List<UserPostEntity> posts) {
     if (posts.isEmpty) {
-      return const Center(
-          child: Text("No posts available.",
-              style: TextStyle(color: Colors.grey)));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.article_outlined, size: 80, color: Colors.grey[300]),
+            const SizedBox(height: 16),
+            Text(
+              "No has publicado nada aún",
+              style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "¡Comparte tus primeras noticias!",
+              style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+            ),
+          ],
+        ),
+      );
     }
     return ListView.builder(
       itemCount: posts.length,
       itemBuilder: (context, index) {
         final post = posts[index];
-        return ListTile(
-          leading: const Icon(Icons.article),
-          title:
-              Text(post.content, maxLines: 2, overflow: TextOverflow.ellipsis),
-          subtitle: Text(post.createdAt.toString().split(' ')[0]),
+        return Card(
+          margin: const EdgeInsets.all(8),
+          child: ListTile(
+            leading: const Icon(Icons.article, color: Colors.blueAccent),
+            title: Text(
+              post.content,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+            subtitle: Text(
+              _formatDate(post.createdAt),
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ),
         );
       },
     );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    
+    if (difference.inMinutes < 60) {
+      return 'hace ${difference.inMinutes} minutos';
+    } else if (difference.inHours < 24) {
+      return 'hace ${difference.inHours} horas';
+    } else if (difference.inDays < 7) {
+      return 'hace ${difference.inDays} días';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
 
   Widget _buildInfoTab(UserProfileDataEntity profile) {

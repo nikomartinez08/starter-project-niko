@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:news_app_clean_architecture/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:news_app_clean_architecture/features/auth/presentation/bloc/auth_event.dart';
 import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_bloc.dart';
 import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_event.dart';
 import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_state.dart';
@@ -41,11 +43,76 @@ class _DailyNewsState extends State<DailyNews> {
     );
   }
 
+  void _showSettingsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.logout),
+                title: const Text('Sign Out'),
+                onTap: () {
+                  context.read<AuthBloc>().add(SignOutEvent());
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_forever, color: Colors.red),
+                title: const Text(
+                  'Delete Account',
+                  style: TextStyle(color: Colors.red),
+                ),
+                onTap: () {
+                  Navigator.pop(context); // Close bottom sheet
+                  // Show confirmation dialog
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Delete Account'),
+                      content: const Text(
+                          'Are you sure you want to delete your account? This action cannot be undone.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            context.read<AuthBloc>().add(DeleteAccountEvent());
+                            Navigator.pop(context); // Close dialog
+                          },
+                          child: const Text(
+                            'Delete',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       title: const Text(
         'Daily News',
         style: TextStyle(color: Colors.black),
+      ),
+      leading: IconButton(
+        icon: const Icon(Icons.settings, color: Colors.black),
+        onPressed: () {
+          _showSettingsBottomSheet(context);
+        },
       ),
       actions: [
         GestureDetector(
