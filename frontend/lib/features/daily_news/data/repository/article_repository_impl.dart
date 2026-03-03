@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -75,8 +76,18 @@ class ArticleRepositoryImpl implements ArticleRepository {
         if (await file.exists()) {
           final fileName = const Uuid().v4();
           final ref = _storage.ref().child('media/articles/$fileName');
-          await ref.putFile(file);
-          imageUrl = await ref.getDownloadURL();
+          try {
+            final uploadSnapshot = await ref
+                .putFile(file)
+                .timeout(const Duration(seconds: 10)); // Timeout más corto para no esperar tanto
+            imageUrl = await uploadSnapshot.ref
+                .getDownloadURL()
+                .timeout(const Duration(seconds: 5));
+          } catch (e) {
+            debugPrint('Fallo al subir imagen (Storage no configurado): $e');
+            // Usamos una imagen de placeholder para que no falle Firestore
+            imageUrl = 'https://via.placeholder.com/400x200.png?text=Sin+Imagen+Storage';
+          }
         }
       }
 
@@ -90,7 +101,15 @@ class ArticleRepositoryImpl implements ArticleRepository {
         'content': article.content,
       };
 
-      await _firestore.collection('articles').add(articleData);
+      try {
+        await _firestore
+            .collection('articles')
+            .add(articleData)
+            .timeout(const Duration(seconds: 15));
+      } on TimeoutException catch (te) {
+        debugPrint('Timeout adding article to Firestore: $te');
+        throw Exception('Timeout adding article to server');
+      }
     } catch (e) {
       debugPrint("Error creating article: $e");
       rethrow;

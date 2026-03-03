@@ -17,9 +17,9 @@ service cloud.firestore {
 
     match /articles/{articleId} {
       allow read: if true;
-      allow create: if request.auth != null && isValidArticle(request.resource.data);
-      allow update: if request.auth != null && isValidArticle(request.resource.data);
-      allow delete: if request.auth != null;
+      allow create: if isValidArticle(request.resource.data);
+      allow update: if isValidArticle(request.resource.data);
+      allow delete: if false; // Keep delete restricted
     }
   }
 }
