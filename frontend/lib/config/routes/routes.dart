@@ -1,35 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../features/daily_news/domain/entities/article.dart';
+import '../../features/daily_news/domain/entities/draft.dart';
+import '../../features/daily_news/presentation/bloc/article/draft/draft_cubit.dart';
+import '../../features/daily_news/presentation/bloc/article/upload/upload_article_cubit.dart';
 import '../../features/daily_news/presentation/pages/article_detail/article_detail.dart';
 import '../../features/daily_news/presentation/pages/home/daily_news.dart';
 import '../../features/daily_news/presentation/pages/saved_article/saved_article.dart';
 import '../../features/daily_news/presentation/pages/upload_article/upload_article.dart';
+import '../../features/daily_news/presentation/pages/upload_article/drafts_list_page.dart';
+import '../../features/daily_news/presentation/pages/my_articles/my_articles_page.dart';
 import '../../features/daily_news/presentation/pages/news_feed/news_feed_screen.dart';
-import '../../features/auth/presentation/pages/register_page.dart';
-import '../../features/auth/presentation/pages/login_page.dart';
-import '../../features/auth/presentation/bloc/auth_bloc.dart';
-import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/favorites/presentation/pages/favorites_page.dart';
 import '../../features/favorites/presentation/bloc/favorites_bloc.dart';
 import '../../features/favorites/presentation/bloc/favorites_event.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../injection_container.dart';
 
 class AppRoutes {
   static Route onGenerateRoutes(RouteSettings settings) {
     switch (settings.name) {
       case '/':
-        return _materialRoute(
-          BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              if (state is Authenticated) {
-                return const DailyNews();
-              }
-              return const LoginPage();
-            },
-          ),
-        );
+        return _materialRoute(const DailyNews());
 
       case '/ArticleDetails':
         return _materialRoute(
@@ -39,28 +31,40 @@ class AppRoutes {
         return _materialRoute(const SavedArticles());
 
       case '/UploadArticle':
-        return _materialRoute(const UploadArticlePage());
+        final draft = settings.arguments as DraftEntity?;
+        return _materialRoute(
+          MultiBlocProvider(
+            providers: [
+              BlocProvider<UploadArticleCubit>(
+                create: (_) => sl<UploadArticleCubit>(),
+              ),
+              BlocProvider<DraftCubit>(
+                create: (_) => sl<DraftCubit>(),
+              ),
+            ],
+            child: UploadArticlePage(draft: draft),
+          ),
+        );
 
-      case '/Register':
-        return _materialRoute(const RegisterPage());
+      case '/Drafts':
+        return _materialRoute(const DraftsListPage());
 
       case '/NewsFeed':
         return _materialRoute(const NewsFeedScreen());
 
       case '/Favorites':
-          BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              if (state is Authenticated) {
-                return const DailyNews();
-              }
-              return const LoginPage();
-            },
-          );
-        
         return _materialRoute(
           BlocProvider<FavoritesBloc>(
             create: (context) => sl()..add(GetFavorites()),
             child: const FavoritesPage(),
+          ),
+        );
+
+      case '/MyArticles':
+        return _materialRoute(
+          BlocProvider<DraftCubit>(
+            create: (_) => sl<DraftCubit>()..loadDrafts(),
+            child: const MyArticlesPage(),
           ),
         );
 

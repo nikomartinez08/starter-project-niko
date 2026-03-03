@@ -13,6 +13,13 @@ import 'features/daily_news/domain/usecases/get_saved_article.dart';
 import 'features/daily_news/domain/usecases/remove_article.dart';
 import 'features/daily_news/domain/usecases/save_article.dart';
 import 'features/daily_news/presentation/bloc/article/local/local_article_bloc.dart';
+import 'package:news_app_clean_architecture/features/daily_news/domain/repository/draft_repository.dart';
+import 'package:news_app_clean_architecture/features/daily_news/data/repository/draft_repository_impl.dart';
+import 'package:news_app_clean_architecture/features/daily_news/domain/usecases/get_drafts.dart';
+import 'package:news_app_clean_architecture/features/daily_news/domain/usecases/save_draft.dart';
+import 'package:news_app_clean_architecture/features/daily_news/domain/usecases/update_draft.dart';
+import 'package:news_app_clean_architecture/features/daily_news/domain/usecases/delete_draft.dart';
+import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/draft/draft_cubit.dart';
 import 'package:news_app_clean_architecture/features/favorites/domain/repository/favorites_repository.dart';
 import 'package:news_app_clean_architecture/features/favorites/data/repository/favorites_repository_impl.dart';
 import 'package:news_app_clean_architecture/features/favorites/data/data_sources/remote/favorites_remote_data_source.dart';
@@ -31,17 +38,6 @@ import 'package:news_app_clean_architecture/features/profile/data/repository/pro
 import 'package:news_app_clean_architecture/features/profile/data/data_sources/remote/profile_remote_data_source.dart';
 import 'package:news_app_clean_architecture/features/profile/domain/usecases/get_profile_data.dart';
 import 'package:news_app_clean_architecture/features/profile/presentation/bloc/profile_bloc.dart';
-import 'package:news_app_clean_architecture/features/auth/data/data_sources/remote/auth_firebase_service.dart';
-import 'package:news_app_clean_architecture/features/auth/data/repositories/auth_repository_impl.dart';
-import 'package:news_app_clean_architecture/features/auth/domain/repositories/auth_repository.dart';
-import 'package:news_app_clean_architecture/features/auth/domain/usecases/get_current_user_usecase.dart';
-import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_in_usecase.dart';
-import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_out_usecase.dart';
-import 'package:news_app_clean_architecture/features/auth/domain/usecases/delete_account_usecase.dart';
-import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_up_usecase.dart';
-import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_in_with_google_usecase.dart';
-import 'package:news_app_clean_architecture/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 final sl = GetIt.instance;
 
@@ -56,9 +52,19 @@ Future<void> initializeDependencies() async {
     );
   });
 
+  // Migration from v2 to v3: adds the draft table
+  final migration2to3 = Migration(2, 3, (database) async {
+    await database.execute(
+      'CREATE TABLE IF NOT EXISTS `draft` '
+      '(`id` INTEGER PRIMARY KEY AUTOINCREMENT, `author` TEXT, '
+      '`title` TEXT, `content` TEXT, `imagePath` TEXT, '
+      '`createdAt` TEXT, `updatedAt` TEXT)',
+    );
+  });
+
   final database = await $FloorAppDatabase
       .databaseBuilder('app_database.db')
-      .addMigrations([migration1to2]).build();
+      .addMigrations([migration1to2, migration2to3]).build();
   sl.registerSingleton<AppDatabase>(database);
 
   // Dio
@@ -67,11 +73,6 @@ Future<void> initializeDependencies() async {
   // Firebase
   sl.registerSingleton<FirebaseFirestore>(FirebaseFirestore.instance);
   sl.registerSingleton<FirebaseAuth>(FirebaseAuth.instance);
-  sl.registerSingleton<GoogleSignIn>(GoogleSignIn());
-
-  // Auth Data Source
-  sl.registerSingleton<AuthRemoteDataSource>(
-      AuthRemoteDataSourceImpl(sl(), sl()));
 
   // Favorites Data Source
   sl.registerSingleton<FavoritesRemoteDataSource>(
@@ -86,9 +87,6 @@ Future<void> initializeDependencies() async {
       ProfileRemoteDataSourceImpl(sl(), sl()));
 
   // Repositories
-  sl.registerSingleton<AuthRepository>(
-      AuthRepositoryImpl(sl()));
-
   sl.registerSingleton<FavoritesRepository>(
       FavoritesRepositoryImpl(database.favoriteDAO, sl()));
 
@@ -97,19 +95,15 @@ Future<void> initializeDependencies() async {
 
   sl.registerSingleton<ProfileRepository>(ProfileRepositoryImpl(sl()));
 
+  sl.registerSingleton<DraftRepository>(
+      DraftRepositoryImpl(database.draftDAO));
+
   // Dependencies
   sl.registerSingleton<NewsApiService>(NewsApiService(sl()));
 
   sl.registerSingleton<ArticleRepository>(ArticleRepositoryImpl(sl(), sl()));
 
   //UseCases
-  sl.registerSingleton<SignInUseCase>(SignInUseCase(sl()));
-  sl.registerSingleton<SignInWithGoogleUseCase>(SignInWithGoogleUseCase(sl()));
-  sl.registerSingleton<SignUpUseCase>(SignUpUseCase(sl()));
-  sl.registerSingleton<SignOutUseCase>(SignOutUseCase(sl()));
-  sl.registerSingleton<DeleteAccountUseCase>(DeleteAccountUseCase(sl()));
-  sl.registerSingleton<GetCurrentUserUseCase>(GetCurrentUserUseCase(sl()));
-
   sl.registerSingleton<GetArticleUseCase>(GetArticleUseCase(sl()));
 
   sl.registerSingleton<GetSavedArticleUseCase>(GetSavedArticleUseCase(sl()));
@@ -134,10 +128,15 @@ Future<void> initializeDependencies() async {
 
   sl.registerSingleton<GetProfileDataUseCase>(GetProfileDataUseCase(sl()));
 
-  //Blocs
-  sl.registerFactory<AuthBloc>(
-      () => AuthBloc(sl(), sl(), sl(), sl(), sl(), sl()));
+  sl.registerSingleton<GetDraftsUseCase>(GetDraftsUseCase(sl()));
 
+  sl.registerSingleton<SaveDraftUseCase>(SaveDraftUseCase(sl()));
+
+  sl.registerSingleton<UpdateDraftUseCase>(UpdateDraftUseCase(sl()));
+
+  sl.registerSingleton<DeleteDraftUseCase>(DeleteDraftUseCase(sl()));
+
+  //Blocs
   sl.registerFactory<RemoteArticlesBloc>(
       () => RemoteArticlesBloc(sl(), sl(), sl()));
 
@@ -149,4 +148,7 @@ Future<void> initializeDependencies() async {
   sl.registerFactory<FavoritesBloc>(() => FavoritesBloc(sl(), sl()));
 
   sl.registerFactory<ProfileBloc>(() => ProfileBloc(sl()));
+
+  sl.registerFactory<DraftCubit>(
+      () => DraftCubit(sl(), sl(), sl(), sl()));
 }

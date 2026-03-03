@@ -2,8 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:news_app_clean_architecture/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:news_app_clean_architecture/features/auth/presentation/bloc/auth_event.dart';
 import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_bloc.dart';
 import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_event.dart';
 import 'package:news_app_clean_architecture/features/daily_news/presentation/bloc/article/remote/remote_article_state.dart';
@@ -13,6 +11,7 @@ import '../../../domain/entities/article.dart';
 import '../../../../profile/presentation/bloc/profile_bloc.dart';
 import '../../../../profile/presentation/bloc/profile_event.dart';
 import '../../../../profile/presentation/pages/profile_page.dart';
+import '../news_feed/news_feed_screen.dart';
 import '../../../../../../injection_container.dart';
 
 class DailyNews extends StatefulWidget {
@@ -25,110 +24,56 @@ class DailyNews extends StatefulWidget {
 class _DailyNewsState extends State<DailyNews> {
   int _currentIndex = 0;
   String _selectedCategory = 'All';
-  final List<String> _categories = [
-    'All',
-    'Technology',
-    'Politics',
-    'Sports',
-    'Finance'
-  ];
+  final List<String> _categories = ['All', 'Technology', 'Politics', 'Sports', 'Finance'];
+
+  static const _surface = Color(0xFF1C1C1E);
+  static const _border = Color(0xFF2C2C2E);
 
   @override
   Widget build(BuildContext context) {
+    final bool isFeedTab = _currentIndex == 1;
     return Scaffold(
-      appBar: _buildAppBar(context),
-      body: _currentIndex == 0 ? _buildHomeBody() : _buildProfileBody(),
+      appBar: isFeedTab ? null : _buildAppBar(context),
+      backgroundColor: Colors.black,
       extendBody: true,
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          _buildHomeBody(),
+          const NewsFeedContent(),
+          _buildProfileBody(),
+        ],
+      ),
       bottomNavigationBar: _buildBottomNavBar(context),
-    );
-  }
-
-  void _showSettingsBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.logout),
-                title: const Text('Sign Out'),
-                onTap: () {
-                  context.read<AuthBloc>().add(SignOutEvent());
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_forever, color: Colors.red),
-                title: const Text(
-                  'Delete Account',
-                  style: TextStyle(color: Colors.red),
-                ),
-                onTap: () {
-                  Navigator.pop(context); // Close bottom sheet
-                  // Show confirmation dialog
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Delete Account'),
-                      content: const Text(
-                          'Are you sure you want to delete your account? This action cannot be undone.'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            context.read<AuthBloc>().add(DeleteAccountEvent());
-                            Navigator.pop(context); // Close dialog
-                          },
-                          child: const Text(
-                            'Delete',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
+      backgroundColor: Colors.black,
+      elevation: 0,
+      titleSpacing: 16,
       title: const Text(
         'Daily News',
-        style: TextStyle(color: Colors.black),
-      ),
-      leading: IconButton(
-        icon: const Icon(Icons.settings, color: Colors.black),
-        onPressed: () {
-          _showSettingsBottomSheet(context);
-        },
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          letterSpacing: -0.5,
+        ),
       ),
       actions: [
-        GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/UploadArticle'),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10),
-            child: Icon(Icons.add, color: Colors.black),
-          ),
+        IconButton(
+          icon: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
+          onPressed: () => Navigator.pushNamed(context, '/UploadArticle'),
+          splashRadius: 22,
         ),
-        GestureDetector(
-          onTap: () => _onShowFavoritesViewTapped(context),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10),
-            child: Icon(Icons.favorite, color: Colors.red),
-          ),
+        IconButton(
+          icon: const Icon(Icons.favorite_rounded, color: Color(0xFFFF3B5C), size: 22),
+          onPressed: () => _onShowFavoritesViewTapped(context),
+          splashRadius: 22,
         ),
+        const SizedBox(width: 4),
       ],
     );
   }
@@ -136,73 +81,54 @@ class _DailyNewsState extends State<DailyNews> {
   Widget _buildBottomNavBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 32, right: 32, bottom: 20),
-      child: SizedBox(
+      child: Container(
         height: 65,
-        child: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            // La píldora flotante
-            Container(
-              height: 65,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(40),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Inicio
-                  _buildNavItem(
-                    icon: Icons.home,
-                    label: 'Inicio',
-                    index: 0,
-                  ),
-                  // Espacio para el botón central
-                  const SizedBox(width: 64),
-                  // Perfil
-                  _buildNavItem(
-                    icon: Icons.person,
-                    label: 'Perfil',
-                    index: 1,
-                  ),
-                ],
-              ),
+        decoration: BoxDecoration(
+          color: _surface,
+          borderRadius: BorderRadius.circular(40),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 20,
+              spreadRadius: 2,
+              offset: const Offset(0, 6),
             ),
-            // Botón central TikTok elevado
-            Positioned(
-              top: -22,
-              child: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/NewsFeed'),
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.35),
-                        blurRadius: 14,
-                        spreadRadius: 1,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.play_arrow_rounded,
-                    color: Colors.white,
-                    size: 38,
-                  ),
-                ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildNavItem(icon: Icons.home_rounded, label: 'Inicio', index: 0),
+            _buildNavItem(icon: Icons.play_circle_filled_rounded, label: 'Feed', index: 1),
+            _buildNavItem(icon: Icons.person_rounded, label: 'Perfil', index: 2),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({required IconData icon, required String label, required int index}) {
+    final bool isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 72,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.grey[600],
+              size: 26,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isSelected ? Colors.white : Colors.grey[600],
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ],
@@ -211,135 +137,143 @@ class _DailyNewsState extends State<DailyNews> {
     );
   }
 
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required int index,
-  }) {
-    final bool isSelected = _currentIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isSelected ? Colors.black : Colors.grey,
-            size: 26,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: isSelected ? Colors.black : Colors.grey,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildHomeBody() {
     return BlocBuilder<RemoteArticlesBloc, RemoteArticlesState>(
       builder: (context, state) {
+        final List<Widget> slivers = [
+          SliverToBoxAdapter(child: _buildCategoryChips()),
+        ];
+
         if (state is RemoteArticlesLoading) {
-          return const Center(child: CupertinoActivityIndicator());
-        }
-        if (state is RemoteArticlesError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 50, color: Colors.grey),
-                const SizedBox(height: 10),
-                Text("Error: ${state.error?.message ?? 'Unknown error'}"),
-                const SizedBox(height: 10),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    context.read<RemoteArticlesBloc>().add(const GetArticles());
-                  },
-                  icon: const Icon(Icons.refresh),
-                  label: const Text("Retry"),
-                ),
-              ],
+          slivers.add(
+            const SliverFillRemaining(
+              child: Center(
+                child: CupertinoActivityIndicator(color: Colors.white),
+              ),
             ),
           );
-        }
-        if (state is RemoteArticlesDone) {
+        } else if (state is RemoteArticlesError) {
+          slivers.add(
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.wifi_off_rounded, size: 52, color: Colors.grey[700]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Could not load articles',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 16),
+                    ),
+                    const SizedBox(height: 20),
+                    GestureDetector(
+                      onTap: () => context.read<RemoteArticlesBloc>().add(const GetArticles()),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: const Text(
+                          'Retry',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        } else if (state is RemoteArticlesDone) {
           if (state.articles == null || state.articles!.isEmpty) {
-            return Column(
-              children: [
-                _buildCategoryChips(),
-                const Expanded(child: Center(child: Text("No articles found"))),
-              ],
+            slivers.add(
+              SliverFillRemaining(
+                child: Center(
+                  child: Text(
+                    'No articles found',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ),
+              ),
             );
-          }
-          return CustomScrollView(
-            slivers: [
+          } else {
+            slivers.add(
               SliverToBoxAdapter(
-                child: _buildCategoryChips(),
+                child: _buildHeroCard(context, state.articles![0]),
               ),
-              SliverToBoxAdapter(
-                child: _buildBreakingNews(context, state.articles![0]),
-              ),
+            );
+            slivers.add(SliverToBoxAdapter(child: _buildSectionHeader('Top Stories')));
+            slivers.add(
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
                 sliver: SliverGrid(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      return _buildArticleGridItem(
-                          context, state.articles![index + 1]);
-                    },
+                    (context, index) => _buildGridCard(context, state.articles![index + 1]),
                     childCount: state.articles!.length - 1,
                   ),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 0.75, // Adjust this ratio as needed
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.72,
                   ),
                 ),
               ),
-            ],
-          );
+            );
+          }
+        } else {
+          slivers.add(const SliverToBoxAdapter(child: SizedBox()));
         }
-        return const SizedBox();
+
+        return CustomScrollView(slivers: slivers);
       },
     );
   }
 
+  // ── Category chips ──────────────────────────────────────────────────────────
+
   Widget _buildCategoryChips() {
     return SizedBox(
-      height: 60,
+      height: 52,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: _categories.length,
         itemBuilder: (context, index) {
           final category = _categories[index];
           final isSelected = _selectedCategory == category;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ChoiceChip(
-              label: Text(category),
-              selected: isSelected,
-              onSelected: (selected) {
-                if (selected) {
-                  setState(() => _selectedCategory = category);
-                  if (category == 'All') {
-                    context.read<RemoteArticlesBloc>().add(const ResetFilter());
-                  } else {
-                    context
-                        .read<RemoteArticlesBloc>()
-                        .add(FilterArticles(category));
-                  }
-                }
-              },
-              selectedColor: Colors.black,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : Colors.black,
+          return GestureDetector(
+            onTap: () {
+              setState(() => _selectedCategory = category);
+              if (category == 'All') {
+                context.read<RemoteArticlesBloc>().add(const ResetFilter());
+              } else {
+                context.read<RemoteArticlesBloc>().add(FilterArticles(category));
+              }
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? Colors.white : const Color(0xFF3A3A3C),
+                ),
+              ),
+              child: Text(
+                category,
+                style: TextStyle(
+                  color: isSelected ? Colors.black : Colors.grey[500],
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
               ),
             ),
           );
@@ -348,228 +282,247 @@ class _DailyNewsState extends State<DailyNews> {
     );
   }
 
-  Widget _buildArticleGridItem(BuildContext context, ArticleEntity article) {
+  // ── Hero / Breaking news card ────────────────────────────────────────────────
+
+  Widget _buildHeroCard(BuildContext context, ArticleEntity article) {
+    final String imageUrl = article.urlToImage ?? '';
+    final bool hasImage = imageUrl.isNotEmpty &&
+        imageUrl != kDefaultImage &&
+        Uri.tryParse(imageUrl)?.hasAbsolutePath == true;
+
     return GestureDetector(
       onTap: () => _onArticlePressed(context, article),
       child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        height: 280,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, 3),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(24),
+          color: _surface,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image
-            Expanded(
-              flex: 5,
-              child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
-                child: _buildGridImage(article),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Background image
+              if (hasImage)
+                CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => Container(color: _border),
+                  errorWidget: (_, __, ___) => Container(
+                    color: _surface,
+                    child: const Icon(Icons.broken_image, color: Colors.white24, size: 48),
+                  ),
+                )
+              else
+                Container(
+                  color: _surface,
+                  child: const Icon(Icons.image, color: Colors.white24, size: 48),
+                ),
+
+              // Gradient overlay
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.92),
+                      Colors.black.withValues(alpha: 0.2),
+                      Colors.transparent,
+                    ],
+                    stops: const [0.0, 0.5, 1.0],
+                  ),
+                ),
               ),
-            ),
-            // Content
-            Expanded(
-              flex: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
+
+              // Content
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 20,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Badge/Category
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            "NEWS", // Placeholder for category
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                    // Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: const Text(
+                        'TOP STORY',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.4,
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            article.publishedAt ?? '',
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 10,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    // Title
-                    Text(
-                      article.title ?? 'No Title',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: Colors.black87,
                       ),
                     ),
-                    // Footer with options
+                    const SizedBox(height: 10),
+                    // Title
+                    Text(
+                      article.title ?? '',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        height: 1.3,
+                        letterSpacing: -0.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    // Author + date row
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: Text(
-                            article.author ?? 'Unknown',
-                            style: const TextStyle(
-                                fontSize: 10, color: Colors.grey),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        if ((article.author ?? '').isNotEmpty) ...[
+                          Text(
+                            article.author!,
+                            style: const TextStyle(color: Colors.white60, fontSize: 12),
                           ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6),
+                            child: Text('·', style: TextStyle(color: Colors.white38)),
+                          ),
+                        ],
+                        Text(
+                          _formatDate(article.publishedAt),
+                          style: const TextStyle(color: Colors.white38, fontSize: 12),
                         ),
-                        const Icon(Icons.more_horiz,
-                            size: 16, color: Colors.grey),
                       ],
                     ),
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildProfileBody() {
-    return BlocProvider<ProfileBloc>(
-      create: (context) => sl()..add(GetProfileEvent()),
-      child: const ProfilePage(),
+  // ── Section header ───────────────────────────────────────────────────────────
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          letterSpacing: -0.3,
+        ),
+      ),
     );
   }
 
-  Widget _buildBreakingNews(BuildContext context, ArticleEntity article) {
+  // ── Grid card ────────────────────────────────────────────────────────────────
+
+  Widget _buildGridCard(BuildContext context, ArticleEntity article) {
     return GestureDetector(
       onTap: () => _onArticlePressed(context, article),
-      child: _buildBreakingNewsContent(context, article),
-    );
-  }
-
-  Widget _buildBreakingNewsContent(
-      BuildContext context, ArticleEntity article) {
-    final String imageUrl = article.urlToImage ?? '';
-    final bool isImageValid = imageUrl.isNotEmpty && imageUrl != kDefaultImage;
-
-    if (isImageValid) {
-      return CachedNetworkImage(
-        imageUrl: imageUrl,
-        imageBuilder: (context, imageProvider) =>
-            _buildBreakingNewsContainer(context, article, imageProvider),
-        placeholder: (context, url) => _buildBreakingNewsContainer(
-            context, article, null,
-            isLoading: true),
-        errorWidget: (context, url, error) =>
-            _buildBreakingNewsContainer(context, article, null),
-      );
-    } else {
-      return _buildBreakingNewsContainer(context, article, null);
-    }
-  }
-
-  Widget _buildBreakingNewsContainer(
-      BuildContext context, ArticleEntity article, ImageProvider? imageProvider,
-      {bool isLoading = false}) {
-    return Container(
-      margin: const EdgeInsets.all(10),
-      height: 250,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        image: imageProvider != null
-            ? DecorationImage(
-                image: imageProvider,
-                fit: BoxFit.cover,
-              )
-            : null,
-        color: isLoading ? Colors.grey[300] : Colors.grey,
-      ),
-      child: Stack(
-        children: [
-          if (imageProvider == null && !isLoading)
-            const Center(
-                child:
-                    Icon(Icons.broken_image, size: 50, color: Colors.white54)),
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.8),
-                  Colors.transparent,
-                ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: _surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _border),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image with gradient
+              Expanded(
+                flex: 6,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _buildGridImage(article),
+                    // Subtle bottom fade on image
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.55),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.5],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    "BREAKING",
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
+              // Text content
+              Expanded(
+                flex: 4,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        article.title ?? 'No Title',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          height: 1.35,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              article.author ?? 'Unknown',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF8E8E93),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            _formatDate(article.publishedAt),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF636366),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  article.title ?? '',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  article.publishedAt ?? '',
-                  style: const TextStyle(color: Colors.white70),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildGridImage(ArticleEntity article) {
     final String imageUrl = article.urlToImage ?? '';
-    // Check if URL is valid and not the broken default
     final bool isImageValid = imageUrl.isNotEmpty &&
         imageUrl != kDefaultImage &&
         Uri.tryParse(imageUrl)?.hasAbsolutePath == true;
@@ -579,20 +532,39 @@ class _DailyNewsState extends State<DailyNews> {
         imageUrl: imageUrl,
         width: double.infinity,
         fit: BoxFit.cover,
-        placeholder: (context, url) =>
-            const Center(child: CupertinoActivityIndicator()),
-        errorWidget: (context, url, error) => Container(
-          color: Colors.grey[200],
-          child: const Icon(Icons.broken_image, color: Colors.grey),
+        placeholder: (_, __) => Container(color: _border),
+        errorWidget: (_, __, ___) => Container(
+          color: _border,
+          child: Icon(Icons.broken_image_rounded, color: Colors.grey[700]),
         ),
       );
-    } else {
-      return Container(
-        width: double.infinity,
-        color: Colors.grey[200],
-        child: const Icon(Icons.image, color: Colors.grey),
-      );
     }
+    return Container(
+      width: double.infinity,
+      color: _border,
+      child: Icon(Icons.image_rounded, color: Colors.grey[700]),
+    );
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '';
+    final date = DateTime.tryParse(dateStr);
+    if (date == null) return dateStr;
+    final diff = DateTime.now().difference(date);
+    if (diff.inMinutes < 1) return 'now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+    if (diff.inHours < 24) return '${diff.inHours}h';
+    if (diff.inDays < 7) return '${diff.inDays}d';
+    return '${date.day}/${date.month}';
+  }
+
+  Widget _buildProfileBody() {
+    return BlocProvider<ProfileBloc>(
+      create: (context) => sl()..add(GetProfileEvent()),
+      child: const ProfilePage(),
+    );
   }
 
   void _onArticlePressed(BuildContext context, ArticleEntity article) {

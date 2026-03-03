@@ -21,7 +21,6 @@ class UserProfileDataEntity extends Equatable {
   final String uid;
   final String name;
   final String email;
-  final String? photoUrl;
   final int followersCount;
   final int followingCount;
   final List<UserPostEntity> posts;
@@ -30,12 +29,11 @@ class UserProfileDataEntity extends Equatable {
     required this.uid,
     required this.name,
     required this.email,
-    this.photoUrl,
     required this.followersCount,
     required this.followingCount,
     required this.posts,
   });
 
   @override
-  List<Object?> get props => [uid, name, email, photoUrl, followersCount, followingCount, posts];
+  List<Object?> get props => [uid, name, email, followersCount, followingCount, posts];
 }

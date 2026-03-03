@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../favorites/domain/entities/favorite_article.dart';
+import '../../../../favorites/presentation/bloc/favorites_bloc.dart';
+import '../../../../favorites/presentation/bloc/favorites_event.dart';
+import '../../../domain/entities/draft.dart';
 
 // ─────────────────────────────────────────────
 // MODEL
@@ -23,7 +28,7 @@ class NewsModel {
 // ─────────────────────────────────────────────
 
 final List<NewsModel> _mockNews = [
-  NewsModel(
+  const NewsModel(
     title:
         'Inteligencia Artificial supera a humanos en diagnósticos médicos con un 98% de precisión',
     subtitle:
@@ -32,7 +37,7 @@ final List<NewsModel> _mockNews = [
         'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&q=80',
     timeAgo: 'Hace 2h',
   ),
-  NewsModel(
+  const NewsModel(
     title:
         'La NASA anuncia el descubrimiento de agua líquida en la superficie de Marte',
     subtitle:
@@ -41,7 +46,7 @@ final List<NewsModel> _mockNews = [
         'https://images.unsplash.com/photo-1614726365952-510103b1bbb4?w=800&q=80',
     timeAgo: 'Hace 4h',
   ),
-  NewsModel(
+  const NewsModel(
     title:
         'Mercados globales alcanzan máximos históricos tras acuerdo económico entre EE.UU. y China',
     subtitle:
@@ -50,7 +55,7 @@ final List<NewsModel> _mockNews = [
         'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80',
     timeAgo: 'Hace 6h',
   ),
-  NewsModel(
+  const NewsModel(
     title:
         'Científicos logran revertir el envejecimiento celular en humanos por primera vez',
     subtitle:
@@ -59,7 +64,7 @@ final List<NewsModel> _mockNews = [
         'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=800&q=80',
     timeAgo: 'Hace 8h',
   ),
-  NewsModel(
+  const NewsModel(
     title:
         'Tesla presenta su nuevo modelo con autonomía de 1.000 km y carga en menos de 10 minutos',
     subtitle:
@@ -71,7 +76,360 @@ final List<NewsModel> _mockNews = [
 ];
 
 // ─────────────────────────────────────────────
-// NEWS FEED SCREEN
+// NEWS FEED CONTENT (embeddable, no Scaffold)
+// Vertical scroll = TikTok, Horizontal swipe = Tinder
+// ─────────────────────────────────────────────
+
+class NewsFeedContent extends StatefulWidget {
+  const NewsFeedContent({Key? key}) : super(key: key);
+
+  @override
+  State<NewsFeedContent> createState() => _NewsFeedContentState();
+}
+
+class _NewsFeedContentState extends State<NewsFeedContent> {
+  final PageController _pageController = PageController();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _goToNextPage() {
+    final nextPage = (_pageController.page?.round() ?? 0) + 1;
+    if (nextPage < _mockNews.length) {
+      _pageController.jumpToPage(nextPage);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black,
+      child: SafeArea(
+        child: PageView.builder(
+          controller: _pageController,
+          scrollDirection: Axis.vertical,
+          itemCount: _mockNews.length,
+          itemBuilder: (context, index) {
+            return _SwipeableCard(
+              news: _mockNews[index],
+              onSwiped: _goToNextPage,
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// SWIPEABLE CARD (Tinder horizontal on each page)
+// ─────────────────────────────────────────────
+
+class _SwipeableCard extends StatefulWidget {
+  final NewsModel news;
+  final VoidCallback? onSwiped;
+
+  const _SwipeableCard({required this.news, this.onSwiped});
+
+  @override
+  State<_SwipeableCard> createState() => _SwipeableCardState();
+}
+
+class _SwipeableCardState extends State<_SwipeableCard>
+    with SingleTickerProviderStateMixin {
+  Offset _dragOffset = Offset.zero;
+  double _dragAngle = 0;
+  double _cardOpacity = 1.0;
+  bool _isAnimating = false;
+
+  late AnimationController _animController;
+
+  static const double _swipeThreshold = 100;
+  static const double _maxAngle = 0.4;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    if (_isAnimating) return;
+    setState(() {
+      _dragOffset = Offset(_dragOffset.dx + details.delta.dx, 0);
+      _dragAngle = (_dragOffset.dx / 300).clamp(-_maxAngle, _maxAngle);
+    });
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    if (_isAnimating) return;
+    if (_dragOffset.dx.abs() > _swipeThreshold) {
+      _animateOff(_dragOffset.dx > 0);
+    } else {
+      _snapBack();
+    }
+  }
+
+  void _snapBack() {
+    _isAnimating = true;
+    final startOffset = _dragOffset;
+    final startAngle = _dragAngle;
+
+    _animController.reset();
+    final animation =
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    animation.addListener(() {
+      setState(() {
+        _dragOffset = Offset.lerp(startOffset, Offset.zero, animation.value)!;
+        _dragAngle = startAngle * (1 - animation.value);
+      });
+    });
+    _animController.forward().then((_) {
+      _isAnimating = false;
+    });
+  }
+
+  void _animateOff(bool toRight) {
+    _isAnimating = true;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final targetX = toRight ? screenWidth * 1.5 : -screenWidth * 1.5;
+    final targetAngle = toRight ? _maxAngle : -_maxAngle;
+    final startOffset = _dragOffset;
+    final startAngle = _dragAngle;
+
+    _animController.reset();
+    final animation =
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    animation.addListener(() {
+      setState(() {
+        _dragOffset = Offset.lerp(
+            startOffset, Offset(targetX, 0), animation.value)!;
+        _dragAngle =
+            startAngle + (targetAngle - startAngle) * animation.value;
+        _cardOpacity = (1.0 - animation.value).clamp(0.0, 1.0);
+      });
+    });
+
+    // Fire the action
+    if (toRight) {
+      _onSwipeRight();
+    } else {
+      _onSwipeLeft();
+    }
+
+    _animController.forward().then((_) {
+      // Reset card state so it looks normal when user scrolls back
+      setState(() {
+        _dragOffset = Offset.zero;
+        _dragAngle = 0;
+        _cardOpacity = 1.0;
+        _isAnimating = false;
+      });
+      // Instantly show next article
+      widget.onSwiped?.call();
+    });
+  }
+
+  void _onSwipeRight() {
+    final news = widget.news;
+    final favorite = FavoriteArticleEntity(
+      externalId: news.imageUrl,
+      author: 'News Feed',
+      title: news.title,
+      description: news.subtitle,
+      url: news.imageUrl,
+      urlToImage: news.imageUrl,
+      savedAt: DateTime.now(),
+    );
+    context.read<FavoritesBloc>().add(ToggleFavoriteEvent(favorite));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Added to favorites'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _onSwipeLeft() {
+    final news = widget.news;
+    final draft = DraftEntity(
+      title: news.title,
+      content: news.subtitle,
+      imagePath: news.imageUrl,
+      author: 'News Feed',
+    );
+    Navigator.pushNamed(context, '/UploadArticle', arguments: draft);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        // Hint labels behind the card
+        Positioned.fill(
+          child: Row(
+            children: [
+              // Left side — EDIT hint
+              Expanded(
+                child: Container(
+                  color: Colors.blue[900]!.withValues(alpha: 0.3),
+                  child: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.edit, color: Colors.white38, size: 40),
+                        SizedBox(height: 8),
+                        Text('EDIT',
+                            style: TextStyle(
+                                color: Colors.white38,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Right side — SAVE hint
+              Expanded(
+                child: Container(
+                  color: Colors.green[900]!.withValues(alpha: 0.3),
+                  child: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.favorite, color: Colors.white38, size: 40),
+                        SizedBox(height: 8),
+                        Text('SAVE',
+                            style: TextStyle(
+                                color: Colors.white38,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Draggable card on top
+        Opacity(
+          opacity: _cardOpacity,
+          child: GestureDetector(
+            onHorizontalDragUpdate: _onHorizontalDragUpdate,
+            onHorizontalDragEnd: _onHorizontalDragEnd,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => NewsDetailScreen(news: widget.news),
+                ),
+              );
+            },
+            child: Transform.translate(
+              offset: _dragOffset,
+              child: Transform.rotate(
+                angle: _dragAngle,
+                child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  NewsCard(news: widget.news),
+
+                  // SAVE overlay (swipe right)
+                  if (_dragOffset.dx > 20)
+                    Container(
+                      color: Colors.green.withValues(
+                          alpha: (_dragOffset.dx / 200).clamp(0.0, 0.5)),
+                      child: Center(
+                        child: Opacity(
+                          opacity:
+                              ((_dragOffset.dx - 20) / 100).clamp(0.0, 1.0),
+                          child: Transform.rotate(
+                            angle: -0.3,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                    color: Colors.white, width: 3),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'SAVE',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 4,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // EDIT overlay (swipe left)
+                  if (_dragOffset.dx < -20)
+                    Container(
+                      color: Colors.blue.withValues(
+                          alpha:
+                              (_dragOffset.dx.abs() / 200).clamp(0.0, 0.5)),
+                      child: Center(
+                        child: Opacity(
+                          opacity: ((_dragOffset.dx.abs() - 20) / 100)
+                              .clamp(0.0, 1.0),
+                          child: Transform.rotate(
+                            angle: 0.3,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                    color: Colors.white, width: 3),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'EDIT',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 4,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          ),
+        ),
+      ],
+    );
+  }
+
+}
+
+// ─────────────────────────────────────────────
+// NEWS FEED SCREEN (standalone route wrapper)
 // ─────────────────────────────────────────────
 
 class NewsFeedScreen extends StatelessWidget {
@@ -79,27 +437,9 @@ class NewsFeedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: PageView.builder(
-          scrollDirection: Axis.vertical,
-          itemCount: _mockNews.length,
-          itemBuilder: (context, index) {
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => NewsDetailScreen(news: _mockNews[index]),
-                  ),
-                );
-              },
-              child: NewsCard(news: _mockNews[index]),
-            );
-          },
-        ),
-      ),
+      body: NewsFeedContent(),
     );
   }
 }
@@ -118,28 +458,19 @@ class NewsCard extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Background image
         _BackgroundImage(imageUrl: news.imageUrl),
-
-        // Bottom gradient overlay
         const _BottomGradient(),
-
-        // Top bar: logo + News label + BREAKING badge
         const Positioned(
           top: 16,
           left: 16,
           child: _TopBar(),
         ),
-
-        // Bottom content: title, subtitle, time
         Positioned(
           bottom: 24,
           left: 20,
           right: 20,
           child: _BottomContent(news: news),
         ),
-
-        // Scroll hint arrow
         const Positioned(
           bottom: 8,
           left: 0,
@@ -213,7 +544,6 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Circular logo
         Container(
           width: 36,
           height: 36,
@@ -230,7 +560,6 @@ class _TopBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        // "News" label
         const Text(
           'News',
           style: TextStyle(
@@ -241,7 +570,6 @@ class _TopBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        // BREAKING badge
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
@@ -276,7 +604,6 @@ class _BottomContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Title
         Text(
           news.title,
           maxLines: 3,
@@ -290,7 +617,6 @@ class _BottomContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        // Subtitle
         Text(
           news.subtitle,
           maxLines: 2,
@@ -303,7 +629,6 @@ class _BottomContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        // Time with red dot
         Row(
           children: [
             Container(
@@ -317,10 +642,7 @@ class _BottomContent extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               news.timeAgo,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
             ),
           ],
         ),
@@ -360,11 +682,9 @@ class NewsDetailScreen extends StatelessWidget {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // Hero image area with back button
             SliverToBoxAdapter(
               child: Stack(
                 children: [
-                  // Image
                   SizedBox(
                     height: 320,
                     width: double.infinity,
@@ -378,7 +698,6 @@ class NewsDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Gradient over image bottom
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -397,7 +716,6 @@ class NewsDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Back button
                   Positioned(
                     top: 12,
                     left: 12,
@@ -414,7 +732,6 @@ class NewsDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // BREAKING badge on image
                   Positioned(
                     top: 16,
                     right: 16,
@@ -438,15 +755,12 @@ class NewsDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Content
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Time row
                     Row(
                       children: [
                         Container(
@@ -466,8 +780,6 @@ class NewsDetailScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 14),
-
-                    // Title
                     Text(
                       news.title,
                       style: const TextStyle(
@@ -478,8 +790,6 @@ class NewsDetailScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-
-                    // Subtitle
                     Text(
                       news.subtitle,
                       style: TextStyle(
@@ -489,12 +799,8 @@ class NewsDetailScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
-
-                    // Divider
                     Divider(color: Colors.white.withValues(alpha: 0.1)),
                     const SizedBox(height: 20),
-
-                    // Body text (simulated)
                     ..._buildBodyParagraphs(),
                   ],
                 ),

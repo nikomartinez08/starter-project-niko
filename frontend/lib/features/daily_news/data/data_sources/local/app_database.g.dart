@@ -1,5 +1,5 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
-// Manually extended to include FavoriteDao implementation.
+// Manually extended to include FavoriteDao and DraftDao implementations.
 
 part of 'app_database.dart';
 
@@ -64,11 +64,12 @@ class _$AppDatabase extends AppDatabase {
 
   ArticleDao? _articleDAOInstance;
   FavoriteDao? _favoriteDaoInstance;
+  DraftDao? _draftDaoInstance;
 
   Future<sqflite.Database> open(String path, List<Migration> migrations,
       [Callback? callback]) async {
     final databaseOptions = sqflite.OpenDatabaseOptions(
-      version: 2,
+      version: 3,
       onConfigure: (database) async {
         await database.execute('PRAGMA foreign_keys = ON');
         await callback?.onConfigure?.call(database);
@@ -89,6 +90,9 @@ class _$AppDatabase extends AppDatabase {
         await database.execute(
             'CREATE TABLE IF NOT EXISTS `favorite_article` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `externalId` TEXT, `author` TEXT, `title` TEXT, `description` TEXT, `url` TEXT, `urlToImage` TEXT, `publishedAt` TEXT, `content` TEXT, `savedAt` TEXT)');
 
+        await database.execute(
+            'CREATE TABLE IF NOT EXISTS `draft` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `author` TEXT, `title` TEXT, `content` TEXT, `imagePath` TEXT, `createdAt` TEXT, `updatedAt` TEXT)');
+
         await callback?.onCreate?.call(database, version);
       },
     );
@@ -103,6 +107,11 @@ class _$AppDatabase extends AppDatabase {
   @override
   FavoriteDao get favoriteDAO {
     return _favoriteDaoInstance ??= _$FavoriteDao(database, changeListener);
+  }
+
+  @override
+  DraftDao get draftDAO {
+    return _draftDaoInstance ??= _$DraftDao(database, changeListener);
   }
 }
 
@@ -265,5 +274,83 @@ class _$FavoriteDao extends FavoriteDao {
     await _queryAdapter.queryNoReturn(
         'DELETE FROM favorite_article WHERE externalId = ?1',
         arguments: [externalId]);
+  }
+}
+
+class _$DraftDao extends DraftDao {
+  _$DraftDao(this.database, this.changeListener)
+      : _queryAdapter = QueryAdapter(database),
+        _draftModelInsertionAdapter = InsertionAdapter(
+            database,
+            'draft',
+            (DraftModel item) => <String, Object?>{
+                  'id': item.id,
+                  'author': item.author,
+                  'title': item.title,
+                  'content': item.content,
+                  'imagePath': item.imagePath,
+                  'createdAt': item.createdAt,
+                  'updatedAt': item.updatedAt,
+                }),
+        _draftModelUpdateAdapter = UpdateAdapter(
+            database,
+            'draft',
+            ['id'],
+            (DraftModel item) => <String, Object?>{
+                  'id': item.id,
+                  'author': item.author,
+                  'title': item.title,
+                  'content': item.content,
+                  'imagePath': item.imagePath,
+                  'createdAt': item.createdAt,
+                  'updatedAt': item.updatedAt,
+                });
+
+  final sqflite.DatabaseExecutor database;
+  final StreamController<String> changeListener;
+  final QueryAdapter _queryAdapter;
+  final InsertionAdapter<DraftModel> _draftModelInsertionAdapter;
+  final UpdateAdapter<DraftModel> _draftModelUpdateAdapter;
+
+  DraftModel _rowToDraftModel(Map<String, Object?> row) {
+    return DraftModel(
+      id: row['id'] as int?,
+      author: row['author'] as String?,
+      title: row['title'] as String?,
+      content: row['content'] as String?,
+      imagePath: row['imagePath'] as String?,
+      createdAt: row['createdAt'] as String?,
+      updatedAt: row['updatedAt'] as String?,
+    );
+  }
+
+  @override
+  Future<List<DraftModel>> getDrafts() async {
+    return _queryAdapter.queryList(
+        'SELECT * FROM draft ORDER BY updatedAt DESC',
+        mapper: _rowToDraftModel);
+  }
+
+  @override
+  Future<DraftModel?> getDraftById(int id) async {
+    return _queryAdapter.query('SELECT * FROM draft WHERE id = ?1',
+        mapper: _rowToDraftModel, arguments: [id]);
+  }
+
+  @override
+  Future<int> insertDraft(DraftModel draft) async {
+    return _draftModelInsertionAdapter.insertAndReturnId(
+        draft, OnConflictStrategy.replace);
+  }
+
+  @override
+  Future<void> updateDraft(DraftModel draft) async {
+    await _draftModelUpdateAdapter.update(draft, OnConflictStrategy.abort);
+  }
+
+  @override
+  Future<void> deleteDraftById(int id) async {
+    await _queryAdapter.queryNoReturn('DELETE FROM draft WHERE id = ?1',
+        arguments: [id]);
   }
 }
