@@ -1,9 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:dio/dio.dart';
 import 'package:news_app_clean_architecture/core/constants/constants.dart';
@@ -18,8 +16,7 @@ import '../data_sources/remote/news_api_service.dart';
 class ArticleRepositoryImpl implements ArticleRepository {
   final NewsApiService _newsApiService;
   final AppDatabase _appDatabase;
-  final _firestore = FirebaseFirestore.instance;
-  final _storage = FirebaseStorage.instance;
+  final SupabaseClient _supabaseClient = Supabase.instance.client;
 
   ArticleRepositoryImpl(this._newsApiService, this._appDatabase);
 
@@ -66,6 +63,11 @@ class ArticleRepositoryImpl implements ArticleRepository {
   @override
   Future<void> createArticle(ArticleEntity article) async {
     try {
+      final user = _supabaseClient.auth.currentUser;
+      if (user == null) {
+        throw Exception('Usuario no autenticado para crear artículo');
+      }
+
       String? imageUrl = article.urlToImage;
 
       // Check if image URL is a local file path
@@ -74,42 +76,40 @@ class ArticleRepositoryImpl implements ArticleRepository {
           !imageUrl.startsWith('http')) {
         final file = File(imageUrl);
         if (await file.exists()) {
-          final fileName = const Uuid().v4();
-          final ref = _storage.ref().child('media/articles/$fileName');
+          final fileName = '${const Uuid().v4()}.jpg';
+          final path = 'media/articles/$fileName';
+          
           try {
-            final uploadSnapshot = await ref
-                .putFile(file)
-                .timeout(const Duration(seconds: 10)); // Timeout más corto para no esperar tanto
-            imageUrl = await uploadSnapshot.ref
-                .getDownloadURL()
-                .timeout(const Duration(seconds: 5));
+            await _supabaseClient.storage.from('images').upload(
+              path,
+              file,
+              fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: false),
+            );
+            
+            imageUrl = _supabaseClient.storage.from('images').getPublicUrl(path);
           } catch (e) {
-            debugPrint('Fallo al subir imagen (Storage no configurado): $e');
-            // Usamos una imagen de placeholder para que no falle Firestore
-            imageUrl = 'https://via.placeholder.com/400x200.png?text=Sin+Imagen+Storage';
+            debugPrint('Fallo al subir imagen a Supabase: $e');
+            // Usamos una imagen de placeholder para que no falle la inserción
+            imageUrl = 'https://via.placeholder.com/400x200.png?text=Error+Storage';
           }
         }
       }
 
       final articleData = {
-        'author': article.author,
-        'title': article.title,
+        'author_id': user.id,
+        'author_name': article.author ?? user.email, 
+        'title': article.title ?? 'Sin título',
         'description': article.description,
-        'url': article.url,
-        'urlToImage': imageUrl,
-        'publishedAt': article.publishedAt,
+        'url': article.url, 
+        'url_to_image': imageUrl,
+        'published_at': article.publishedAt ?? DateTime.now().toIso8601String(),
         'content': article.content,
       };
 
-      try {
-        await _firestore
-            .collection('articles')
-            .add(articleData)
-            .timeout(const Duration(seconds: 15));
-      } on TimeoutException catch (te) {
-        debugPrint('Timeout adding article to Firestore: $te');
-        throw Exception('Timeout adding article to server');
-      }
+      await _supabaseClient
+          .from('articles')
+          .insert(articleData);
+          
     } catch (e) {
       debugPrint("Error creating article: $e");
       rethrow;

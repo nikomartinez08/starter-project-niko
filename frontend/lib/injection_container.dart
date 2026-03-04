@@ -26,18 +26,33 @@ import 'package:news_app_clean_architecture/features/favorites/data/data_sources
 import 'package:news_app_clean_architecture/features/favorites/domain/usecases/get_favorites.dart';
 import 'package:news_app_clean_architecture/features/favorites/domain/usecases/toggle_favorite.dart';
 import 'package:news_app_clean_architecture/features/favorites/presentation/bloc/favorites_bloc.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:news_app_clean_architecture/features/recommendation/domain/repository/recommendation_repository.dart';
 import 'package:news_app_clean_architecture/features/recommendation/data/repository/recommendation_repository_impl.dart';
 import 'package:news_app_clean_architecture/features/recommendation/data/data_sources/remote/recommendation_remote_data_source.dart';
+import 'package:news_app_clean_architecture/features/recommendation/data/data_sources/remote/recommendation_supabase_service.dart';
 import 'package:news_app_clean_architecture/features/recommendation/domain/usecases/get_personalized_feed.dart';
 import 'package:news_app_clean_architecture/features/recommendation/domain/usecases/update_user_preferences.dart';
 import 'package:news_app_clean_architecture/features/profile/domain/repository/profile_repository.dart';
 import 'package:news_app_clean_architecture/features/profile/data/repository/profile_repository_impl.dart';
 import 'package:news_app_clean_architecture/features/profile/data/data_sources/remote/profile_remote_data_source.dart';
 import 'package:news_app_clean_architecture/features/profile/domain/usecases/get_profile_data.dart';
+import 'package:news_app_clean_architecture/features/profile/domain/usecases/update_profile_data.dart';
 import 'package:news_app_clean_architecture/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:news_app_clean_architecture/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/repositories/auth_repository.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/usecases/get_current_user_usecase.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_in_usecase.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_out_usecase.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/usecases/delete_account_usecase.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_up_usecase.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_in_with_google_usecase.dart';
+import 'package:news_app_clean_architecture/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:news_app_clean_architecture/features/auth/data/data_sources/remote/auth_supabase_service.dart';
+import 'package:news_app_clean_architecture/features/auth/data/data_sources/remote/auth_remote_data_source.dart';
+
+import 'package:news_app_clean_architecture/features/profile/data/data_sources/remote/profile_supabase_service.dart';
+import 'package:news_app_clean_architecture/features/favorites/data/data_sources/remote/favorites_supabase_service.dart';
 
 final sl = GetIt.instance;
 
@@ -69,22 +84,26 @@ Future<void> initializeDependencies() async {
 
   // Dio
   sl.registerSingleton<Dio>(Dio());
+  
+  // Supabase
+  sl.registerSingleton<SupabaseClient>(Supabase.instance.client);
 
-  // Firebase
-  sl.registerSingleton<FirebaseFirestore>(FirebaseFirestore.instance);
-  sl.registerSingleton<FirebaseAuth>(FirebaseAuth.instance);
+  // Auth Data Source
+  // Usamos la implementación de Supabase
+  sl.registerSingleton<AuthRemoteDataSource>(
+      AuthSupabaseServiceImpl(sl()));
 
-  // Favorites Data Source
+  // Favorites Data Source (Supabase)
   sl.registerSingleton<FavoritesRemoteDataSource>(
-      FavoritesRemoteDataSourceImpl(sl(), sl()));
+      FavoritesSupabaseServiceImpl(sl()));
 
   // Recommendation Data Source
   sl.registerSingleton<RecommendationRemoteDataSource>(
-      RecommendationRemoteDataSourceImpl(sl(), sl()));
+      RecommendationSupabaseServiceImpl(sl()));
 
   // Profile Data Source
   sl.registerSingleton<ProfileRemoteDataSource>(
-      ProfileRemoteDataSourceImpl(sl(), sl()));
+      ProfileSupabaseServiceImpl(sl()) as ProfileRemoteDataSource);
 
   // Repositories
   sl.registerSingleton<FavoritesRepository>(
@@ -95,6 +114,9 @@ Future<void> initializeDependencies() async {
 
   sl.registerSingleton<ProfileRepository>(ProfileRepositoryImpl(sl()));
 
+  sl.registerSingleton<AuthRepository>(
+      AuthRepositoryImpl(sl()));
+
   sl.registerSingleton<DraftRepository>(
       DraftRepositoryImpl(database.draftDAO));
 
@@ -104,6 +126,13 @@ Future<void> initializeDependencies() async {
   sl.registerSingleton<ArticleRepository>(ArticleRepositoryImpl(sl(), sl()));
 
   //UseCases
+  sl.registerSingleton<SignInUseCase>(SignInUseCase(sl()));
+  sl.registerSingleton<SignInWithGoogleUseCase>(SignInWithGoogleUseCase(sl()));
+  sl.registerSingleton<SignUpUseCase>(SignUpUseCase(sl()));
+  sl.registerSingleton<SignOutUseCase>(SignOutUseCase(sl()));
+  sl.registerSingleton<DeleteAccountUseCase>(DeleteAccountUseCase(sl()));
+  sl.registerSingleton<GetCurrentUserUseCase>(GetCurrentUserUseCase(sl()));
+
   sl.registerSingleton<GetArticleUseCase>(GetArticleUseCase(sl()));
 
   sl.registerSingleton<GetSavedArticleUseCase>(GetSavedArticleUseCase(sl()));
@@ -128,6 +157,8 @@ Future<void> initializeDependencies() async {
 
   sl.registerSingleton<GetProfileDataUseCase>(GetProfileDataUseCase(sl()));
 
+  sl.registerSingleton<UpdateProfileDataUseCase>(UpdateProfileDataUseCase(sl()));
+
   sl.registerSingleton<GetDraftsUseCase>(GetDraftsUseCase(sl()));
 
   sl.registerSingleton<SaveDraftUseCase>(SaveDraftUseCase(sl()));
@@ -147,8 +178,11 @@ Future<void> initializeDependencies() async {
 
   sl.registerFactory<FavoritesBloc>(() => FavoritesBloc(sl(), sl()));
 
-  sl.registerFactory<ProfileBloc>(() => ProfileBloc(sl()));
+  sl.registerFactory<ProfileBloc>(() => ProfileBloc(sl(), sl()));
 
   sl.registerFactory<DraftCubit>(
       () => DraftCubit(sl(), sl(), sl(), sl()));
+
+  sl.registerFactory<AuthBloc>(
+      () => AuthBloc(sl(), sl(), sl(), sl(), sl(), sl()));
 }

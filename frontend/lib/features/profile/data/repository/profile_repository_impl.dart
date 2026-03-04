@@ -18,6 +18,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
+  Future<void> updateProfile({String? name, String? title, String? photoUrl}) {
+    return _remoteDataSource.updateProfile(name: name, title: title, photoUrl: photoUrl);
+  }
+
+  @override
   Future<List<UserPostEntity>> getUserPosts() {
     return _remoteDataSource.getUserPosts();
   }

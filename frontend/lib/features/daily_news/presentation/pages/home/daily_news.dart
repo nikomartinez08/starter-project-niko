@@ -11,6 +11,7 @@ import '../../../domain/entities/article.dart';
 import '../../../../profile/presentation/bloc/profile_bloc.dart';
 import '../../../../profile/presentation/bloc/profile_event.dart';
 import '../../../../profile/presentation/pages/profile_page.dart';
+import '../../../../settings/presentation/pages/settings_page.dart';
 import '../news_feed/news_feed_screen.dart';
 import '../../../../../../injection_container.dart';
 
@@ -53,28 +54,37 @@ class _DailyNewsState extends State<DailyNews> {
       backgroundColor: Colors.black,
       elevation: 0,
       titleSpacing: 16,
-      title: const Text(
-        'Daily News',
-        style: TextStyle(
+      leading: (_currentIndex == 0 || _currentIndex == 2)
+          ? IconButton(
+              icon: const Icon(Icons.settings_rounded, color: Colors.white, size: 26),
+              onPressed: () => SettingsModal.show(context),
+              splashRadius: 22,
+            )
+          : null,
+      title: Text(
+        _currentIndex == 2 ? 'Profile' : 'Daily News',
+        style: const TextStyle(
           color: Colors.white,
           fontSize: 22,
           fontWeight: FontWeight.bold,
           letterSpacing: -0.5,
         ),
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
-          onPressed: () => Navigator.pushNamed(context, '/UploadArticle'),
-          splashRadius: 22,
-        ),
-        IconButton(
-          icon: const Icon(Icons.favorite_rounded, color: Color(0xFFFF3B5C), size: 22),
-          onPressed: () => _onShowFavoritesViewTapped(context),
-          splashRadius: 22,
-        ),
-        const SizedBox(width: 4),
-      ],
+      actions: _currentIndex == 2
+          ? [const SizedBox(width: 16)]
+          : [
+              IconButton(
+                icon: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
+                onPressed: () => Navigator.pushNamed(context, '/UploadArticle'),
+                splashRadius: 22,
+              ),
+              IconButton(
+                icon: const Icon(Icons.favorite_rounded, color: Color(0xFFFF3B5C), size: 22),
+                onPressed: () => _onShowFavoritesViewTapped(context),
+                splashRadius: 22,
+              ),
+              const SizedBox(width: 4),
+            ],
     );
   }
 

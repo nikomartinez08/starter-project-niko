@@ -14,6 +14,8 @@ import '../../features/daily_news/presentation/pages/my_articles/my_articles_pag
 import '../../features/daily_news/presentation/pages/news_feed/news_feed_screen.dart';
 import '../../features/favorites/presentation/pages/favorites_page.dart';
 import '../../features/favorites/presentation/bloc/favorites_bloc.dart';
+import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/favorites/presentation/bloc/favorites_event.dart';
 import '../../injection_container.dart';
 
@@ -22,6 +24,12 @@ class AppRoutes {
     switch (settings.name) {
       case '/':
         return _materialRoute(const DailyNews());
+
+      case '/Login':
+        return _materialRoute(const LoginPage());
+
+      case '/Register':
+        return _materialRoute(const RegisterPage());
 
       case '/ArticleDetails':
         return _materialRoute(

@@ -12,7 +12,20 @@
           "package_name": "com.example.news_app_clean_architecture"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "126221318196-uf9kqk4f19p0667pt9oetvq6cdiv9t3p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.news_app_clean_architecture",
+            "certificate_hash": "70839df56dab54cc2f42fc34a057aea63ec3962f"
+          }
+        },
+        {
+          "client_id": "126221318196-gd36mrdc5q10hg7tlolte82ksl5au66v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDICIEdh5DcOaNPl0EgfRhQyoVYqHT5DZM"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "126221318196-gd36mrdc5q10hg7tlolte82ksl5au66v.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

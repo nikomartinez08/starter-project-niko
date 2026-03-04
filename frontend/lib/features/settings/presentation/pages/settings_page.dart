@@ -1,88 +1,75 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_event.dart';
 
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Settings',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+class SettingsModal {
+  static void show(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black87,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            _sheetTile(
+              context,
+              icon: Icons.logout,
+              label: 'Cerrar sesión',
+              onTap: () {
+                Navigator.pop(ctx);
+                context.read<AuthBloc>().add(SignOutEvent());
+              },
+            ),
+            _sheetTile(
+              context,
+              icon: Icons.delete_outline,
+              label: 'Eliminar cuenta',
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDelete(context);
+              },
+            ),
+            const SizedBox(height: 20),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar', style: TextStyle(color: Colors.white70)),
+            ),
+            const SizedBox(height: 16),
+          ],
         ),
       ),
-      body: ListView(
-        children: [
-          _buildSettingsTile(
-            icon: Icons.person_outline_rounded,
-            title: 'Account',
-            onTap: () {},
-          ),
-          _buildSettingsTile(
-            icon: Icons.notifications_outlined,
-            title: 'Notifications',
-            onTap: () {},
-          ),
-          _buildSettingsTile(
-            icon: Icons.lock_outline_rounded,
-            title: 'Privacy & Security',
-            onTap: () {},
-          ),
-          _buildSettingsTile(
-            icon: Icons.help_outline_rounded,
-            title: 'Help & Support',
-            onTap: () {},
-          ),
-          _buildSettingsTile(
-            icon: Icons.info_outline_rounded,
-            title: 'About',
-            onTap: () {},
-          ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: OutlinedButton(
-              onPressed: () {
-                // Implement logout
-              },
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.red),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Log Out',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-              ),
-            ),
+    );
+  }
+
+  static void _confirmDelete(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Confirmar eliminación'),
+        content: const Text('¿Estás seguro de que deseas eliminar tu cuenta?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<AuthBloc>().add(DeleteAccountEvent());
+            },
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSettingsTile({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
+  static Widget _sheetTile(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {
     return ListTile(
       leading: Icon(icon, color: Colors.white),
-      title: Text(
-        title,
-        style: const TextStyle(color: Colors.white),
-      ),
-      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+      title: Text(label, style: const TextStyle(color: Colors.white)),
       onTap: onTap,
     );
   }
