@@ -110,6 +110,18 @@ class AuthSupabaseServiceImpl implements AuthRemoteDataSource {
   }
 
   @override
+  Future<void> signInWithGithub() async {
+    try {
+      await _supabaseClient.auth.signInWithOAuth(
+        OAuthProvider.github,
+        redirectTo: 'io.supabase.newsapp://login-callback/',
+      );
+    } catch (e) {
+      throw Exception('GitHub Sign In error: $e');
+    }
+  }
+
+  @override
   Future<void> signOut() async {
     await _supabaseClient.auth.signOut();
     try {

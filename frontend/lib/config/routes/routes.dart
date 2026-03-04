@@ -17,6 +17,10 @@ import '../../features/favorites/presentation/bloc/favorites_bloc.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/favorites/presentation/bloc/favorites_event.dart';
+import '../../features/streaming/presentation/bloc/streaming_bloc.dart';
+import '../../features/streaming/presentation/pages/broadcaster_screen.dart';
+import '../../features/streaming/presentation/pages/viewer_screen.dart';
+import '../../features/streaming/domain/entities/live_stream_entity.dart';
 import '../../injection_container.dart';
 
 class AppRoutes {
@@ -74,6 +78,19 @@ class AppRoutes {
             create: (_) => sl<DraftCubit>()..loadDrafts(),
             child: const MyArticlesPage(),
           ),
+        );
+
+      case '/BroadcasterScreen':
+        return _materialRoute(
+          BlocProvider<StreamingBloc>(
+            create: (_) => sl<StreamingBloc>(),
+            child: const BroadcasterScreen(),
+          ),
+        );
+
+      case '/ViewerScreen':
+        return _materialRoute(
+          ViewerScreen(stream: settings.arguments as LiveStreamEntity),
         );
 
       default:

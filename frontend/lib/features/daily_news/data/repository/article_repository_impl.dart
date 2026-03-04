@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:dio/dio.dart';
@@ -16,20 +18,29 @@ import '../data_sources/remote/news_api_service.dart';
 class ArticleRepositoryImpl implements ArticleRepository {
   final NewsApiService _newsApiService;
   final AppDatabase _appDatabase;
+  final SharedPreferences _prefs;
   final SupabaseClient _supabaseClient = Supabase.instance.client;
 
-  ArticleRepositoryImpl(this._newsApiService, this._appDatabase);
+  static const _cacheKey = 'cached_articles';
+
+  ArticleRepositoryImpl(this._newsApiService, this._appDatabase, this._prefs);
 
   @override
-  Future<DataState<List<ArticleModel>>> getNewsArticles() async {
+  Future<DataState<List<ArticleModel>>> getNewsArticles({int page = 1, int pageSize = 20}) async {
     try {
       final httpResponse = await _newsApiService.getNewsArticles(
         apiKey: newsAPIKey,
         country: countryQuery,
         category: categoryQuery,
+        page: page,
+        pageSize: pageSize,
       );
 
       if (httpResponse.response.statusCode == HttpStatus.ok) {
+        // Cache page 1 results for offline use
+        if (page == 1) {
+          _cacheArticles(httpResponse.data);
+        }
         return DataSuccess(httpResponse.data);
       } else {
         return DataFailed(DioException(
@@ -39,7 +50,37 @@ class ArticleRepositoryImpl implements ArticleRepository {
             requestOptions: httpResponse.response.requestOptions));
       }
     } on DioException catch (e) {
+      // Try serving cached articles on network failure
+      if (page == 1) {
+        final cached = _getCachedArticles();
+        if (cached.isNotEmpty) {
+          return DataSuccess(cached);
+        }
+      }
       return DataFailed(e);
+    }
+  }
+
+  void _cacheArticles(List<ArticleModel> articles) {
+    try {
+      final jsonList = articles.map((a) => a.toJson()).toList();
+      _prefs.setString(_cacheKey, jsonEncode(jsonList));
+    } catch (e) {
+      debugPrint('Failed to cache articles: $e');
+    }
+  }
+
+  List<ArticleModel> _getCachedArticles() {
+    try {
+      final raw = _prefs.getString(_cacheKey);
+      if (raw == null) return [];
+      final List<dynamic> jsonList = jsonDecode(raw);
+      return jsonList
+          .map((j) => ArticleModel.fromJson(j as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('Failed to load cached articles: $e');
+      return [];
     }
   }
 
@@ -50,6 +91,10 @@ class ArticleRepositoryImpl implements ArticleRepository {
 
   @override
   Future<void> removeArticle(ArticleEntity article) {
+    // Use title-based deletion since API articles don't have a local DB id
+    if (article.title != null) {
+      return _appDatabase.articleDAO.deleteArticleByTitle(article.title!);
+    }
     return _appDatabase.articleDAO
         .deleteArticle(ArticleModel.fromEntity(article));
   }
@@ -97,10 +142,9 @@ class ArticleRepositoryImpl implements ArticleRepository {
 
       final articleData = {
         'author_id': user.id,
-        'author_name': article.author ?? user.email, 
+        'author_name': article.author ?? user.email,
         'title': article.title ?? 'Sin título',
         'description': article.description,
-        'url': article.url, 
         'url_to_image': imageUrl,
         'published_at': article.publishedAt ?? DateTime.now().toIso8601String(),
         'content': article.content,

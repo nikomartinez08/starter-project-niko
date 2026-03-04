@@ -8,6 +8,14 @@ class GetArticles extends RemoteArticlesEvent {
   const GetArticles();
 }
 
+class LoadMoreArticles extends RemoteArticlesEvent {
+  const LoadMoreArticles();
+}
+
+class RefreshArticles extends RemoteArticlesEvent {
+  const RefreshArticles();
+}
+
 class SwipeArticleEvent extends RemoteArticlesEvent {
   final ArticleEntity article;
   final bool isLike;

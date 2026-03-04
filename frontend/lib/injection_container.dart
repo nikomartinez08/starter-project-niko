@@ -46,13 +46,26 @@ import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_o
 import 'package:news_app_clean_architecture/features/auth/domain/usecases/delete_account_usecase.dart';
 import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_up_usecase.dart';
 import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_in_with_google_usecase.dart';
+import 'package:news_app_clean_architecture/features/auth/domain/usecases/sign_in_with_github_usecase.dart';
 import 'package:news_app_clean_architecture/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:news_app_clean_architecture/features/auth/data/data_sources/remote/auth_supabase_service.dart';
 import 'package:news_app_clean_architecture/features/auth/data/data_sources/remote/auth_remote_data_source.dart';
+import 'package:news_app_clean_architecture/features/auth/data/data_sources/local/auth_local_data_source.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:news_app_clean_architecture/features/profile/data/data_sources/remote/profile_supabase_service.dart';
 import 'package:news_app_clean_architecture/features/favorites/data/data_sources/remote/favorites_supabase_service.dart';
+import 'package:news_app_clean_architecture/features/streaming/data/data_sources/remote/streaming_remote_data_source.dart';
+import 'package:news_app_clean_architecture/features/streaming/data/data_sources/remote/streaming_supabase_service.dart';
+import 'package:news_app_clean_architecture/features/streaming/data/data_sources/local/agora_service.dart';
+import 'package:news_app_clean_architecture/features/streaming/domain/repository/streaming_repository.dart';
+import 'package:news_app_clean_architecture/features/streaming/data/repository/streaming_repository_impl.dart';
+import 'package:news_app_clean_architecture/features/streaming/domain/usecases/create_stream_usecase.dart';
+import 'package:news_app_clean_architecture/features/streaming/domain/usecases/end_stream_usecase.dart';
+import 'package:news_app_clean_architecture/features/streaming/domain/usecases/get_active_streams_usecase.dart';
+import 'package:news_app_clean_architecture/features/streaming/domain/usecases/get_stream_token_usecase.dart';
+import 'package:news_app_clean_architecture/features/streaming/presentation/bloc/streaming_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -88,10 +101,15 @@ Future<void> initializeDependencies() async {
   // Supabase
   sl.registerSingleton<SupabaseClient>(Supabase.instance.client);
 
-  // Auth Data Source
-  // Usamos la implementación de Supabase
+  // SharedPreferences
+  final sharedPreferences = await SharedPreferences.getInstance();
+  sl.registerSingleton<SharedPreferences>(sharedPreferences);
+
+  // Auth Data Sources
   sl.registerSingleton<AuthRemoteDataSource>(
       AuthSupabaseServiceImpl(sl()));
+  sl.registerSingleton<AuthLocalDataSource>(
+      AuthLocalDataSourceImpl(sl()));
 
   // Favorites Data Source (Supabase)
   sl.registerSingleton<FavoritesRemoteDataSource>(
@@ -115,7 +133,7 @@ Future<void> initializeDependencies() async {
   sl.registerSingleton<ProfileRepository>(ProfileRepositoryImpl(sl()));
 
   sl.registerSingleton<AuthRepository>(
-      AuthRepositoryImpl(sl()));
+      AuthRepositoryImpl(sl(), sl()));
 
   sl.registerSingleton<DraftRepository>(
       DraftRepositoryImpl(database.draftDAO));
@@ -123,11 +141,12 @@ Future<void> initializeDependencies() async {
   // Dependencies
   sl.registerSingleton<NewsApiService>(NewsApiService(sl()));
 
-  sl.registerSingleton<ArticleRepository>(ArticleRepositoryImpl(sl(), sl()));
+  sl.registerSingleton<ArticleRepository>(ArticleRepositoryImpl(sl(), sl(), sl()));
 
   //UseCases
   sl.registerSingleton<SignInUseCase>(SignInUseCase(sl()));
   sl.registerSingleton<SignInWithGoogleUseCase>(SignInWithGoogleUseCase(sl()));
+  sl.registerSingleton<SignInWithGithubUseCase>(SignInWithGithubUseCase(sl()));
   sl.registerSingleton<SignUpUseCase>(SignUpUseCase(sl()));
   sl.registerSingleton<SignOutUseCase>(SignOutUseCase(sl()));
   sl.registerSingleton<DeleteAccountUseCase>(DeleteAccountUseCase(sl()));
@@ -184,5 +203,22 @@ Future<void> initializeDependencies() async {
       () => DraftCubit(sl(), sl(), sl(), sl()));
 
   sl.registerFactory<AuthBloc>(
-      () => AuthBloc(sl(), sl(), sl(), sl(), sl(), sl()));
+      () => AuthBloc(sl(), sl(), sl(), sl(), sl(), sl(), sl()));
+
+  // ── Streaming ──────────────────────────────────────────────
+  sl.registerSingleton<StreamingRemoteDataSource>(
+      StreamingSupabaseServiceImpl(sl()));
+
+  sl.registerSingleton<AgoraService>(AgoraService());
+
+  sl.registerSingleton<StreamingRepository>(
+      StreamingRepositoryImpl(sl()));
+
+  sl.registerSingleton<CreateStreamUseCase>(CreateStreamUseCase(sl()));
+  sl.registerSingleton<EndStreamUseCase>(EndStreamUseCase(sl()));
+  sl.registerSingleton<GetActiveStreamsUseCase>(GetActiveStreamsUseCase(sl()));
+  sl.registerSingleton<GetStreamTokenUseCase>(GetStreamTokenUseCase(sl()));
+
+  sl.registerFactory<StreamingBloc>(
+      () => StreamingBloc(sl(), sl(), sl()));
 }

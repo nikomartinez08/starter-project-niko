@@ -173,12 +173,18 @@ class _$ArticleDao extends ArticleDao {
   @override
   Future<void> insertArticle(ArticleModel article) async {
     await _articleModelInsertionAdapter.insert(
-        article, OnConflictStrategy.abort);
+        article, OnConflictStrategy.replace);
   }
 
   @override
   Future<void> deleteArticle(ArticleModel articleModel) async {
     await _articleModelDeletionAdapter.delete(articleModel);
+  }
+
+  @override
+  Future<void> deleteArticleByTitle(String title) async {
+    await _queryAdapter
+        .queryNoReturn('DELETE FROM article WHERE title = ?1', arguments: [title]);
   }
 }
 

@@ -18,12 +18,13 @@ class _RegisterPageState extends State<RegisterPage> {
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  // COLORES CORPORATIVOS
-  static const Color kBgColor = Color(0xFFF9FAFB);
-  static const Color kPrimaryText = Color(0xFF111827);
-  static const Color kSecondaryText = Color(0xFF6B7280);
-  static const Color kBorderColor = Color(0xFFE5E7EB);
-  static const Color kCtaColor = Color(0xFF1E3A8A);
+  // Dark theme colors matching the home feed
+  static const Color kBackground = Color(0xFF000000);
+  static const Color kSurface = Color(0xFF1C1C1E);
+  static const Color kBorder = Color(0xFF2C2C2E);
+  static const Color kPrimaryText = Color(0xFFFFFFFF);
+  static const Color kSecondaryText = Color(0xFF8E8E93);
+  static const Color kAccent = Color(0xFF636366);
 
   @override
   void dispose() {
@@ -37,7 +38,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: kBackground,
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is Authenticated) {
@@ -45,177 +46,26 @@ class _RegisterPageState extends State<RegisterPage> {
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).clearSnackBars();
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: kSurface,
+              ),
             );
           }
         },
         builder: (context, state) {
           if (state is AuthLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            );
           }
 
           return LayoutBuilder(
             builder: (context, constraints) {
               if (constraints.maxWidth > 800) {
-                // Desktop Layout: Split Screen
-                return Row(
-                  children: [
-                    // Left Column (Dark)
-                    Expanded(
-                      flex: 3,
-                      child: Container(
-                        color: const Color(0xFF0F172A),
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              top: -20,
-                              left: -20,
-                              child: Text(
-                                "NEWS",
-                                style: TextStyle(
-                                  fontSize: 140,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFFFFFFFF).withValues(alpha: 0.03),
-                                  letterSpacing: -5,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(60.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Text(
-                                    "ÚNETE AHORA",
-                                    style: TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  SizedBox(height: 24),
-                                  Text(
-                                    "Sé parte de la comunidad informada más influyente. Análisis, datos y contexto en tiempo real.",
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.white70,
-                                      height: 1.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Right Column (Light)
-                    Expanded(
-                      flex: 2,
-                      child: Container(
-                        color: kBgColor,
-                        alignment: Alignment.center,
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(40),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 480),
-                            child: _buildRegisterForm(),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
+                return _buildDesktopLayout();
               } else {
-                // Mobile Layout
-                return Stack(
-                  children: [
-                    // Background Image
-                    Positioned.fill(
-                      child: Image.network(
-                        "https://images.unsplash.com/photo-1566378246598-5b11a0d486cc?q=80&w=2069&auto=format&fit=crop",
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    // Gradient Overlay
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            stops: const [0.0, 0.3, 1.0],
-                            colors: [
-                              const Color(0xFF0F172A).withValues(alpha: 0.9),
-                              const Color(0xFF0F172A).withValues(alpha: 0.8),
-                              const Color(0xFFF9FAFB).withValues(alpha: 0.95),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    // "NEWS" Watermark
-                    Positioned(
-                      bottom: -20,
-                      right: -20,
-                      child: IgnorePointer(
-                        child: Text(
-                          "NEWS",
-                          style: TextStyle(
-                            fontSize: 100,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0F172A).withValues(alpha: 0.05),
-                            letterSpacing: -5,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Content
-                    SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          // Header
-                          SizedBox(
-                            height: 160,
-                            width: double.infinity,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Text(
-                                    "CREAR CUENTA",
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    "Comienza tu prueba gratuita hoy.",
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          // Form
-                          Padding(
-                            padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
-                            child: _buildRegisterForm(),
-                          ),
-                          const SizedBox(height: 40),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
+                return _buildMobileLayout();
               }
             },
           );
@@ -224,216 +74,390 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _buildRegisterForm() {
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      margin: EdgeInsets.zero,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(40),
-        child: Form(
-          key: _formKey,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "Registro",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: kPrimaryText,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Completa tus datos para continuar.",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: kSecondaryText,
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Name Field
-              _buildLabel("Nombre completo"),
-              const SizedBox(height: 8),
-              _buildTextField(
-                controller: _nameController,
-                hint: "Juan Pérez",
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El nombre es requerido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // Email Field
-              _buildLabel("Correo electrónico"),
-              const SizedBox(height: 8),
-              _buildTextField(
-                controller: _emailController,
-                hint: "nombre@empresa.com",
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El correo es requerido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // Password Field
-              _buildLabel("Contraseña"),
-              const SizedBox(height: 8),
-              _buildTextField(
-                controller: _passwordController,
-                hint: "••••••••",
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'La contraseña es requerida';
-                  }
-                  if (value.length < 6) {
-                    return 'Mínimo 6 caracteres';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // Confirm Password Field
-              _buildLabel("Confirmar contraseña"),
-              const SizedBox(height: 8),
-              _buildTextField(
-                controller: _confirmPasswordController,
-                hint: "••••••••",
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Confirma tu contraseña';
-                  }
-                  if (value != _passwordController.text) {
-                    return 'Las contraseñas no coinciden';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 32),
-
-              // Register Button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kCtaColor,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      context.read<AuthBloc>().add(
-                            SignUpEvent(
-                              _emailController.text.trim(),
-                              _passwordController.text.trim(),
-                              name: _nameController.text.trim(),
-                            ),
-                          );
-                    }
-                  },
-                  child: const Text(
-                    "Registrarse",
+  Widget _buildDesktopLayout() {
+    return Row(
+      children: [
+        // Left branding panel
+        Expanded(
+          flex: 3,
+          child: Container(
+            color: kBackground,
+            child: Stack(
+              children: [
+                Positioned(
+                  top: -20,
+                  left: -20,
+                  child: Text(
+                    "NEWS",
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 140,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white.withValues(alpha: 0.03),
+                      letterSpacing: -5,
                     ),
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  const Expanded(child: Divider(color: kBorderColor)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text("O", style: TextStyle(color: kSecondaryText, fontSize: 12)),
+                Padding(
+                  padding: const EdgeInsets.all(60.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Text(
+                        "ÚNETE AHORA",
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      SizedBox(height: 24),
+                      Text(
+                        "Sé parte de la comunidad informada más influyente. Análisis, datos y contexto en tiempo real.",
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: kSecondaryText,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
                   ),
-                  const Expanded(child: Divider(color: kBorderColor)),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Right form panel
+        Expanded(
+          flex: 2,
+          child: Container(
+            color: kSurface,
+            alignment: Alignment.center,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(40),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: _buildForm(),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return Stack(
+      children: [
+        // Background gradient
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  kSurface,
+                  kBackground,
                 ],
               ),
-              const SizedBox(height: 24),
-
-              // Google Button
+            ),
+          ),
+        ),
+        // Watermark
+        Positioned(
+          bottom: -20,
+          right: -20,
+          child: IgnorePointer(
+            child: Text(
+              "NEWS",
+              style: TextStyle(
+                fontSize: 100,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withValues(alpha: 0.03),
+                letterSpacing: -5,
+              ),
+            ),
+          ),
+        ),
+        // Content
+        SingleChildScrollView(
+          child: Column(
+            children: [
+              // Header
               SizedBox(
+                height: 160,
                 width: double.infinity,
-                height: 50,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: kBorderColor),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    foregroundColor: kPrimaryText,
-                  ),
-                  onPressed: () {
-                    context.read<AuthBloc>().add(SignInWithGoogleEvent());
-                  },
-                  icon: const Icon(Icons.g_mobiledata, size: 28),
-                  label: const Text(
-                    "Registrarse con Google",
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-              Center(
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: RichText(
-                    text: const TextSpan(
-                      text: "¿Ya tienes cuenta? ",
-                      style: TextStyle(color: kSecondaryText, fontSize: 13),
-                      children: [
-                        TextSpan(
-                          text: "Iniciar sesión",
-                          style: TextStyle(
-                            color: kCtaColor,
-                            fontWeight: FontWeight.w600,
-                          ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Text(
+                        "CREAR CUENTA",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
                         ),
-                      ],
-                    ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        "Comienza tu prueba gratuita hoy.",
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: kSecondaryText,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
+              // Form
+              Padding(
+                padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
+                child: _buildForm(),
+              ),
+              const SizedBox(height: 40),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildForm() {
+    return Container(
+      decoration: BoxDecoration(
+        color: kSurface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: kBorder, width: 1),
+      ),
+      padding: const EdgeInsets.all(32),
+      child: Form(
+        key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Registro",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: kPrimaryText,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Completa tus datos para continuar.",
+              style: TextStyle(
+                fontSize: 14,
+                color: kSecondaryText,
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Name
+            _buildLabel("Nombre completo"),
+            const SizedBox(height: 8),
+            _buildTextField(
+              controller: _nameController,
+              hint: "Juan Pérez",
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'El nombre es requerido';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+
+            // Email
+            _buildLabel("Correo electrónico"),
+            const SizedBox(height: 8),
+            _buildTextField(
+              controller: _emailController,
+              hint: "nombre@empresa.com",
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'El correo es requerido';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+
+            // Password
+            _buildLabel("Contraseña"),
+            const SizedBox(height: 8),
+            _buildTextField(
+              controller: _passwordController,
+              hint: "••••••••",
+              obscureText: true,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'La contraseña es requerida';
+                }
+                if (value.length < 6) {
+                  return 'Mínimo 6 caracteres';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+
+            // Confirm password
+            _buildLabel("Confirmar contraseña"),
+            const SizedBox(height: 8),
+            _buildTextField(
+              controller: _confirmPasswordController,
+              hint: "••••••••",
+              obscureText: true,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Confirma tu contraseña';
+                }
+                if (value != _passwordController.text) {
+                  return 'Las contraseñas no coinciden';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 32),
+
+            // Register button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    context.read<AuthBloc>().add(
+                          SignUpEvent(
+                            _emailController.text.trim(),
+                            _passwordController.text.trim(),
+                            name: _nameController.text.trim(),
+                          ),
+                        );
+                  }
+                },
+                child: const Text(
+                  "Registrarse",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+
+            // Divider
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                const Expanded(child: Divider(color: kBorder)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text("O", style: TextStyle(color: kSecondaryText, fontSize: 12)),
+                ),
+                const Expanded(child: Divider(color: kBorder)),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Google button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: kBorder),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  foregroundColor: kPrimaryText,
+                ),
+                onPressed: () {
+                  context.read<AuthBloc>().add(SignInWithGoogleEvent());
+                },
+                icon: const Icon(Icons.g_mobiledata, size: 28),
+                label: const Text(
+                  "Registrarse con Google",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // GitHub button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: kBorder),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  foregroundColor: kPrimaryText,
+                ),
+                onPressed: () {
+                  context.read<AuthBloc>().add(SignInWithGithubEvent());
+                },
+                icon: const Icon(Icons.code, size: 24),
+                label: const Text(
+                  "Registrarse con GitHub",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+
+            // Login link
+            const SizedBox(height: 24),
+            Center(
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop();
+                },
+                child: RichText(
+                  text: const TextSpan(
+                    text: "¿Ya tienes cuenta? ",
+                    style: TextStyle(color: kSecondaryText, fontSize: 13),
+                    children: [
+                      TextSpan(
+                        text: "Iniciar sesión",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -445,7 +469,7 @@ class _RegisterPageState extends State<RegisterPage> {
       style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w500,
-        color: kPrimaryText,
+        color: kSecondaryText,
       ),
     );
   }
@@ -464,28 +488,29 @@ class _RegisterPageState extends State<RegisterPage> {
         color: kPrimaryText,
         fontSize: 15,
       ),
+      cursorColor: Colors.white,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: kSecondaryText.withValues(alpha: 0.7)),
+        hintStyle: TextStyle(color: kAccent.withValues(alpha: 0.7)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: kBorderColor),
-          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: kBorder),
+          borderRadius: BorderRadius.circular(14),
         ),
-        focusedBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: kCtaColor, width: 1.5),
-          borderRadius: BorderRadius.all(Radius.circular(6)),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.white, width: 1.5),
+          borderRadius: BorderRadius.circular(14),
         ),
-        errorBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.red),
-          borderRadius: BorderRadius.all(Radius.circular(6)),
+        errorBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.red),
+          borderRadius: BorderRadius.circular(14),
         ),
-        focusedErrorBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.red, width: 1.5),
-          borderRadius: BorderRadius.all(Radius.circular(6)),
+        focusedErrorBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          borderRadius: BorderRadius.circular(14),
         ),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: kBackground,
       ),
     );
   }

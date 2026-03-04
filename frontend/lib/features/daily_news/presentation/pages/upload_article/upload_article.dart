@@ -487,21 +487,17 @@ class _UploadArticlePageState extends State<UploadArticlePage> {
     return GestureDetector(
       onTap: _pickImage,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(22, 16, 22, 0),
-        height: 106,
-        decoration: BoxDecoration(
-          color: _surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _border),
-        ),
+        width: double.infinity,
+        height: 220,
+        color: _surface,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_photo_alternate_outlined, color: Colors.grey[700], size: 28),
-            const SizedBox(height: 8),
+            Icon(Icons.add_photo_alternate_outlined, color: Colors.grey[700], size: 36),
+            const SizedBox(height: 10),
             Text(
               'Add cover image',
-              style: TextStyle(color: Colors.grey[700], fontSize: 13),
+              style: TextStyle(color: Colors.grey[700], fontSize: 14),
             ),
           ],
         ),

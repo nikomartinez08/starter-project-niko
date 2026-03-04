@@ -12,6 +12,8 @@ import 'config/theme/app_themes.dart';
 import 'features/daily_news/presentation/bloc/article/remote/remote_article_bloc.dart';
 import 'features/favorites/presentation/bloc/favorites_bloc.dart';
 import 'features/favorites/presentation/bloc/favorites_event.dart';
+import 'features/streaming/presentation/bloc/streaming_bloc.dart';
+import 'features/streaming/presentation/bloc/streaming_event.dart';
 import 'injection_container.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -41,7 +43,7 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
-          create: (context) => sl()..add(SignOutEvent()), // Force logout to show login screen
+          create: (context) => sl()..add(CheckAuthStatusEvent()),
         ),
         BlocProvider<RemoteArticlesBloc>(
           create: (context) => sl()..add(const GetArticles()),
@@ -49,20 +51,48 @@ class MyApp extends StatelessWidget {
         BlocProvider<FavoritesBloc>(
           create: (context) => sl()..add(GetFavorites()),
         ),
+        BlocProvider<StreamingBloc>(
+          create: (context) => sl()..add(const LoadActiveStreams()),
+        ),
       ],
       child: MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: theme(),
           onGenerateRoute: AppRoutes.onGenerateRoutes,
-          home: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              if (state is Authenticated) {
-                return const DailyNews();
-              }
-              return const LoginPage();
-            },
-          ),
+          home: const _AuthGate(),
         ),
+    );
+  }
+}
+
+class _AuthGate extends StatefulWidget {
+  const _AuthGate();
+
+  @override
+  State<_AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<_AuthGate> {
+  @override
+  void initState() {
+    super.initState();
+    // Listen for OAuth callbacks (GitHub, etc.) when user returns from browser
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.signedIn && mounted) {
+        context.read<AuthBloc>().add(CheckAuthStatusEvent());
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        if (state is Authenticated) {
+          return const DailyNews();
+        }
+        return const LoginPage();
+      },
     );
   }
 }

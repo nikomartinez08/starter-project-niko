@@ -15,6 +15,14 @@ class RemoteArticlesBloc
 
   List<ArticleEntity> _allFetchedArticles = [];
   String _currentFilter = 'All';
+  int _currentPage = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+  DateTime? _lastFetchTime;
+  static const int _pageSize = 20;
+  static const int _maxPage = 5; // 5 pages × 20 = 100 articles (NewsAPI free tier max)
+  static const Duration _fetchCooldown = Duration(seconds: 30);
+  static const Duration _refreshCooldown = Duration(seconds: 60);
 
   RemoteArticlesBloc(
     this._getArticleUseCase,
@@ -22,6 +30,8 @@ class RemoteArticlesBloc
     this._updateUserPreferencesUseCase,
   ) : super(const RemoteArticlesLoading()) {
     on<GetArticles>(onGetArticles);
+    on<LoadMoreArticles>(onLoadMoreArticles);
+    on<RefreshArticles>(onRefreshArticles);
     on<SwipeArticleEvent>(onSwipeArticle);
     on<FilterArticles>(onFilterArticles);
     on<ResetFilter>(onResetFilter);
@@ -29,10 +39,85 @@ class RemoteArticlesBloc
 
   void onGetArticles(
       GetArticles event, Emitter<RemoteArticlesState> emit) async {
-    final dataState = await _getArticleUseCase();
+    _currentPage = 1;
+    _hasMore = true;
+    final dataState = await _getArticleUseCase(
+      params: GetArticleParams(page: _currentPage, pageSize: _pageSize),
+    );
+    _lastFetchTime = DateTime.now();
 
     if (dataState is DataSuccess) {
       _allFetchedArticles = dataState.data ?? [];
+      _hasMore = (_allFetchedArticles.length >= _pageSize);
+      await _applyCurrentFilterAndEmit(emit);
+    }
+
+    if (dataState is DataFailed) {
+      emit(RemoteArticlesError(dataState.error!));
+    }
+  }
+
+  bool _isCooldownActive(Duration cooldown) {
+    if (_lastFetchTime == null) return false;
+    return DateTime.now().difference(_lastFetchTime!) < cooldown;
+  }
+
+  Future<void> onLoadMoreArticles(
+      LoadMoreArticles event, Emitter<RemoteArticlesState> emit) async {
+    if (!_hasMore || _isLoadingMore) return;
+    if (_currentPage >= _maxPage) {
+      _hasMore = false;
+      await _applyCurrentFilterAndEmit(emit);
+      return;
+    }
+    if (_isCooldownActive(_fetchCooldown)) return;
+    _isLoadingMore = true;
+
+    emit(RemoteArticlesLoadingMore(
+      List.from(_allFetchedArticles),
+      hasMore: _hasMore,
+    ));
+
+    final nextPage = _currentPage + 1;
+    final dataState = await _getArticleUseCase(
+      params: GetArticleParams(page: nextPage, pageSize: _pageSize),
+    );
+    _lastFetchTime = DateTime.now();
+
+    if (dataState is DataSuccess) {
+      final newArticles = dataState.data ?? [];
+      if (newArticles.isEmpty || newArticles.length < _pageSize) {
+        _hasMore = false;
+      }
+      _currentPage = nextPage;
+      _allFetchedArticles.addAll(newArticles);
+      await _applyCurrentFilterAndEmit(emit);
+    }
+
+    if (dataState is DataFailed) {
+      await _applyCurrentFilterAndEmit(emit);
+    }
+
+    _isLoadingMore = false;
+  }
+
+  Future<void> onRefreshArticles(
+      RefreshArticles event, Emitter<RemoteArticlesState> emit) async {
+    if (_isCooldownActive(_refreshCooldown)) {
+      // Still emit current data so RefreshIndicator completes
+      await _applyCurrentFilterAndEmit(emit);
+      return;
+    }
+    _currentPage = 1;
+    _hasMore = true;
+    final dataState = await _getArticleUseCase(
+      params: GetArticleParams(page: _currentPage, pageSize: _pageSize),
+    );
+    _lastFetchTime = DateTime.now();
+
+    if (dataState is DataSuccess) {
+      _allFetchedArticles = dataState.data ?? [];
+      _hasMore = (_allFetchedArticles.length >= _pageSize);
       await _applyCurrentFilterAndEmit(emit);
     }
 
@@ -89,7 +174,7 @@ class RemoteArticlesBloc
     if (_currentFilter == 'All') {
       final personalized =
           await _getPersonalizedFeedUseCase(params: _allFetchedArticles);
-      emit(RemoteArticlesDone(personalized));
+      emit(RemoteArticlesDone(personalized, hasMore: _hasMore));
     } else {
       final filtered = _allFetchedArticles.where((article) {
         final title = (article.title ?? '').toLowerCase();
@@ -109,7 +194,7 @@ class RemoteArticlesBloc
 
         return cat.toLowerCase() == _currentFilter.toLowerCase();
       }).toList();
-      emit(RemoteArticlesDone(filtered));
+      emit(RemoteArticlesDone(filtered, hasMore: _hasMore));
     }
   }
 }

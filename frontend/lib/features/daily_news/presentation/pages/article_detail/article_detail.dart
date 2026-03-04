@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import '../../../../../injection_container.dart';
 import '../../../domain/entities/article.dart';
 import '../../bloc/article/local/local_article_bloc.dart';
 import '../../bloc/article/local/local_article_event.dart';
+import '../../bloc/article/local/local_article_state.dart';
 
-class ArticleDetailsView extends HookWidget {
+class ArticleDetailsView extends StatefulWidget {
   final ArticleEntity? article;
 
   const ArticleDetailsView({Key? key, this.article}) : super(key: key);
 
+  @override
+  State<ArticleDetailsView> createState() => _ArticleDetailsViewState();
+}
+
+class _ArticleDetailsViewState extends State<ArticleDetailsView> {
   static const _bg = Color(0xFF0A0A0A);
   static const _surface = Color(0xFF1C1C1E);
   static const _border = Color(0xFF2C2C2E);
@@ -18,60 +23,82 @@ class ArticleDetailsView extends HookWidget {
   static const _secondaryText = Color(0xFF8E8E93);
   static const _mutedText = Color(0xFF636366);
 
+  late final LocalArticleBloc _localBloc;
+  bool _isSaved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _localBloc = sl<LocalArticleBloc>()..add(const GetSavedArticles());
+  }
+
+  @override
+  void dispose() {
+    _localBloc.close();
+    super.dispose();
+  }
+
+  bool _checkIfSaved(List<ArticleEntity>? savedArticles) {
+    if (savedArticles == null || widget.article == null) return false;
+    final title = widget.article!.title;
+    return savedArticles.any((a) => a.title == title);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<LocalArticleBloc>(),
-      child: Scaffold(
-        backgroundColor: _bg,
-        body: Stack(
-          children: [
-            // ── Scrollable article content ────────────────────────────────
-            SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeroImage(),
-                  _buildContent(),
-                ],
-              ),
-            ),
-
-            // ── Floating action row (back + save) over the image ──────────
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return BlocProvider.value(
+      value: _localBloc,
+      child: BlocListener<LocalArticleBloc, LocalArticlesState>(
+        listener: (context, state) {
+          if (state is LocalArticlesDone) {
+            setState(() => _isSaved = _checkIfSaved(state.articles));
+          }
+        },
+        child: Scaffold(
+          backgroundColor: _bg,
+          body: Stack(
+            children: [
+              SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _FloatingBtn(
-                      icon: Icons.arrow_back_ios_new_rounded,
-                      onTap: () => Navigator.pop(context),
-                    ),
-                    Builder(
-                      builder: (ctx) => _FloatingBtn(
-                        icon: Icons.bookmark_outline_rounded,
-                        onTap: () => _saveArticle(ctx),
-                      ),
-                    ),
+                    _buildHeroImage(),
+                    _buildContent(),
                   ],
                 ),
               ),
-            ),
-          ],
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _FloatingBtn(
+                        icon: Icons.arrow_back_ios_new_rounded,
+                        onTap: () => Navigator.pop(context),
+                      ),
+                      _FloatingBtn(
+                        icon: _isSaved
+                            ? Icons.bookmark_rounded
+                            : Icons.bookmark_outline_rounded,
+                        onTap: () => _toggleSave(context),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ── Hero image ────────────────────────────────────────────────────────────
-
   Widget _buildHeroImage() {
-    final String imageUrl = article?.urlToImage ?? '';
+    final String imageUrl = widget.article?.urlToImage ?? '';
 
     return Stack(
       children: [
-        // Image
         Container(
           width: double.infinity,
           height: 320,
@@ -98,7 +125,6 @@ class ArticleDetailsView extends HookWidget {
                   ),
                 ),
         ),
-        // Gradient fade into background
         Positioned.fill(
           child: Container(
             decoration: const BoxDecoration(
@@ -115,12 +141,9 @@ class ArticleDetailsView extends HookWidget {
     );
   }
 
-  // ── Article content ───────────────────────────────────────────────────────
-
   Widget _buildContent() {
-    // Clean up content — strip the "[+XXXX chars]" API truncation marker
-    final description = article?.description ?? '';
-    final rawContent = article?.content ?? '';
+    final description = widget.article?.description ?? '';
+    final rawContent = widget.article?.content ?? '';
     final content = rawContent.replaceAll(RegExp(r'\s*\[\+\d+ chars\]$'), '').trim();
 
     final body = [description, content]
@@ -132,9 +155,8 @@ class ArticleDetailsView extends HookWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title
           Text(
-            article?.title ?? '',
+            widget.article?.title ?? '',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 26,
@@ -144,14 +166,12 @@ class ArticleDetailsView extends HookWidget {
             ),
           ),
           const SizedBox(height: 14),
-
-          // Author · date
           Row(
             children: [
-              if ((article?.author ?? '').isNotEmpty) ...[
+              if ((widget.article?.author ?? '').isNotEmpty) ...[
                 Flexible(
                   child: Text(
-                    article!.author!,
+                    widget.article!.author!,
                     style: const TextStyle(
                       color: _secondaryText,
                       fontSize: 13,
@@ -167,18 +187,14 @@ class ArticleDetailsView extends HookWidget {
                 ),
               ],
               Text(
-                _formatDate(article?.publishedAt),
+                _formatDate(widget.article?.publishedAt),
                 style: const TextStyle(color: _mutedText, fontSize: 13),
               ),
             ],
           ),
           const SizedBox(height: 22),
-
-          // Divider
           Container(height: 1, color: _border),
           const SizedBox(height: 22),
-
-          // Body text
           Text(
             body.isNotEmpty ? body : 'No content available.',
             style: const TextStyle(
@@ -193,27 +209,34 @@ class ArticleDetailsView extends HookWidget {
     );
   }
 
-  // ── Actions ───────────────────────────────────────────────────────────────
-
-  void _saveArticle(BuildContext context) {
-    if (article == null) return;
-    BlocProvider.of<LocalArticleBloc>(context).add(SaveArticle(article!));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'Saved to your library',
-          style: TextStyle(color: Colors.white),
+  void _toggleSave(BuildContext context) {
+    if (widget.article == null) return;
+    if (_isSaved) {
+      _localBloc.add(RemoveArticle(widget.article!));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Removed from library', style: TextStyle(color: Colors.white)),
+          backgroundColor: _surface,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         ),
-        backgroundColor: _surface,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      ),
-    );
+      );
+    } else {
+      _localBloc.add(SaveArticle(widget.article!));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Saved to your library', style: TextStyle(color: Colors.white)),
+          backgroundColor: _surface,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        ),
+      );
+    }
   }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
 
   String _formatDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return '';
@@ -226,8 +249,6 @@ class ArticleDetailsView extends HookWidget {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 }
-
-// ── Floating pill button ───────────────────────────────────────────────────
 
 class _FloatingBtn extends StatelessWidget {
   final IconData icon;

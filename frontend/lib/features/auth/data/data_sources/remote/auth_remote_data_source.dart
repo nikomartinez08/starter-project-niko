@@ -7,6 +7,8 @@ abstract class AuthRemoteDataSource {
 
   Future<UserModel> signInWithGoogle();
 
+  Future<void> signInWithGithub();
+
   Future<void> signOut();
 
   Future<void> deleteAccount();

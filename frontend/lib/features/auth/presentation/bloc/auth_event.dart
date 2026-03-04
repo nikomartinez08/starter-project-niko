@@ -19,6 +19,8 @@ class SignInEvent extends AuthEvent {
 
 class SignInWithGoogleEvent extends AuthEvent {}
 
+class SignInWithGithubEvent extends AuthEvent {}
+
 class SignUpEvent extends AuthEvent {
   final String email;
   final String password;

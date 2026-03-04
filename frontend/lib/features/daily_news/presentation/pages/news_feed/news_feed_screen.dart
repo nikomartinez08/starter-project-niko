@@ -1,79 +1,20 @@
+import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../favorites/domain/entities/favorite_article.dart';
 import '../../../../favorites/presentation/bloc/favorites_bloc.dart';
 import '../../../../favorites/presentation/bloc/favorites_event.dart';
+import '../../../../streaming/presentation/bloc/streaming_bloc.dart';
+import '../../../../streaming/presentation/bloc/streaming_state.dart';
+import '../../../../streaming/presentation/widgets/live_stream_card.dart';
+import '../../../../streaming/domain/entities/live_stream_entity.dart';
+import '../../../domain/entities/article.dart';
 import '../../../domain/entities/draft.dart';
-
-// ─────────────────────────────────────────────
-// MODEL
-// ─────────────────────────────────────────────
-
-class NewsModel {
-  final String title;
-  final String subtitle;
-  final String imageUrl;
-  final String timeAgo;
-
-  const NewsModel({
-    required this.title,
-    required this.subtitle,
-    required this.imageUrl,
-    required this.timeAgo,
-  });
-}
-
-// ─────────────────────────────────────────────
-// MOCK DATA
-// ─────────────────────────────────────────────
-
-final List<NewsModel> _mockNews = [
-  const NewsModel(
-    title:
-        'Inteligencia Artificial supera a humanos en diagnósticos médicos con un 98% de precisión',
-    subtitle:
-        'Un nuevo modelo de IA desarrollado en MIT logra resultados históricos en detección temprana de cáncer.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&q=80',
-    timeAgo: 'Hace 2h',
-  ),
-  const NewsModel(
-    title:
-        'La NASA anuncia el descubrimiento de agua líquida en la superficie de Marte',
-    subtitle:
-        'El hallazgo podría cambiar para siempre la forma en que entendemos la vida extraterrestre.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1614726365952-510103b1bbb4?w=800&q=80',
-    timeAgo: 'Hace 4h',
-  ),
-  const NewsModel(
-    title:
-        'Mercados globales alcanzan máximos históricos tras acuerdo económico entre EE.UU. y China',
-    subtitle:
-        'El Dow Jones sube un 3.5% en un solo día, el mayor incremento desde 2020.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80',
-    timeAgo: 'Hace 6h',
-  ),
-  const NewsModel(
-    title:
-        'Científicos logran revertir el envejecimiento celular en humanos por primera vez',
-    subtitle:
-        'Un ensayo clínico pionero consigue rejuvenecer células hasta 25 años usando terapia génica avanzada.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=800&q=80',
-    timeAgo: 'Hace 8h',
-  ),
-  const NewsModel(
-    title:
-        'Tesla presenta su nuevo modelo con autonomía de 1.000 km y carga en menos de 10 minutos',
-    subtitle:
-        'El vehículo eléctrico promete revolucionar la industria automotriz mundial con tecnología de baterías sólidas.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80',
-    timeAgo: 'Hace 10h',
-  ),
-];
+import '../../bloc/article/remote/remote_article_bloc.dart';
+import '../../bloc/article/remote/remote_article_event.dart';
+import '../../bloc/article/remote/remote_article_state.dart';
+import '../../models/feed_item.dart';
 
 // ─────────────────────────────────────────────
 // NEWS FEED CONTENT (embeddable, no Scaffold)
@@ -81,7 +22,8 @@ final List<NewsModel> _mockNews = [
 // ─────────────────────────────────────────────
 
 class NewsFeedContent extends StatefulWidget {
-  const NewsFeedContent({Key? key}) : super(key: key);
+  final Set<String> savedTitles;
+  const NewsFeedContent({Key? key, this.savedTitles = const {}}) : super(key: key);
 
   @override
   State<NewsFeedContent> createState() => _NewsFeedContentState();
@@ -96,11 +38,29 @@ class _NewsFeedContentState extends State<NewsFeedContent> {
     super.dispose();
   }
 
-  void _goToNextPage() {
+  void _goToNextPage(int totalCount) {
     final nextPage = (_pageController.page?.round() ?? 0) + 1;
-    if (nextPage < _mockNews.length) {
+    if (nextPage < totalCount) {
       _pageController.jumpToPage(nextPage);
     }
+  }
+
+  void _onPageChanged(int index, int totalCount) {
+    // Load more when near the end (3 pages before last)
+    if (index >= totalCount - 3) {
+      context.read<RemoteArticlesBloc>().add(const LoadMoreArticles());
+    }
+  }
+
+  List<FeedItem> _buildFeedItems(List<ArticleEntity> articles, List<LiveStreamEntity> streams) {
+    final items = <FeedItem>[];
+    for (final stream in streams) {
+      items.add(FeedItem.liveStream(stream));
+    }
+    for (final article in articles) {
+      items.add(FeedItem.article(article));
+    }
+    return items;
   }
 
   @override
@@ -108,14 +68,108 @@ class _NewsFeedContentState extends State<NewsFeedContent> {
     return Container(
       color: Colors.black,
       child: SafeArea(
-        child: PageView.builder(
-          controller: _pageController,
-          scrollDirection: Axis.vertical,
-          itemCount: _mockNews.length,
-          itemBuilder: (context, index) {
-            return _SwipeableCard(
-              news: _mockNews[index],
-              onSwiped: _goToNextPage,
+        child: BlocBuilder<StreamingBloc, StreamingState>(
+          builder: (context, streamingState) {
+            final liveStreams = streamingState is ActiveStreamsLoaded
+                ? streamingState.streams
+                : <LiveStreamEntity>[];
+
+            return BlocBuilder<RemoteArticlesBloc, RemoteArticlesState>(
+              builder: (context, state) {
+                if (state is RemoteArticlesLoading) {
+                  return const Center(
+                    child: CupertinoActivityIndicator(color: Colors.white),
+                  );
+                }
+
+                if (state is RemoteArticlesError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.wifi_off_rounded, size: 52, color: Colors.grey[700]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Could not load articles',
+                          style: TextStyle(color: Colors.grey[500], fontSize: 16),
+                        ),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () => context.read<RemoteArticlesBloc>().add(const GetArticles()),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: const Text(
+                              'Retry',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                if (state is RemoteArticlesDone) {
+                  final allArticles = state.articles ?? [];
+                  final articles = widget.savedTitles.isEmpty
+                      ? allArticles
+                      : allArticles.where((a) => !widget.savedTitles.contains(a.title)).toList();
+                  final feedItems = _buildFeedItems(articles, liveStreams);
+
+                  if (feedItems.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No content found',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    );
+                  }
+
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      context.read<RemoteArticlesBloc>().add(const RefreshArticles());
+                      await context.read<RemoteArticlesBloc>().stream.firstWhere(
+                        (s) => s is RemoteArticlesDone || s is RemoteArticlesError,
+                      );
+                    },
+                    color: Colors.white,
+                    backgroundColor: const Color(0xFF1C1C1E),
+                    child: PageView.builder(
+                      controller: _pageController,
+                      scrollDirection: Axis.vertical,
+                      itemCount: feedItems.length,
+                      onPageChanged: (index) => _onPageChanged(index, feedItems.length),
+                      itemBuilder: (context, index) {
+                        final item = feedItems[index];
+                        if (item.type == FeedItemType.liveStream) {
+                          return LiveStreamCard(
+                            stream: item.liveStream!,
+                            onTap: () => Navigator.pushNamed(
+                              context,
+                              '/ViewerScreen',
+                              arguments: item.liveStream!,
+                            ),
+                          );
+                        }
+                        return _SwipeableCard(
+                          article: item.article!,
+                          onSwiped: () => _goToNextPage(feedItems.length),
+                        );
+                      },
+                    ),
+                  );
+                }
+
+                return const SizedBox();
+              },
             );
           },
         ),
@@ -129,10 +183,10 @@ class _NewsFeedContentState extends State<NewsFeedContent> {
 // ─────────────────────────────────────────────
 
 class _SwipeableCard extends StatefulWidget {
-  final NewsModel news;
+  final ArticleEntity article;
   final VoidCallback? onSwiped;
 
-  const _SwipeableCard({required this.news, this.onSwiped});
+  const _SwipeableCard({required this.article, this.onSwiped});
 
   @override
   State<_SwipeableCard> createState() => _SwipeableCardState();
@@ -243,14 +297,14 @@ class _SwipeableCardState extends State<_SwipeableCard>
   }
 
   void _onSwipeRight() {
-    final news = widget.news;
+    final article = widget.article;
     final favorite = FavoriteArticleEntity(
-      externalId: news.imageUrl,
-      author: 'News Feed',
-      title: news.title,
-      description: news.subtitle,
-      url: news.imageUrl,
-      urlToImage: news.imageUrl,
+      externalId: article.url ?? article.title ?? '',
+      author: article.author ?? 'Unknown',
+      title: article.title ?? '',
+      description: article.description ?? '',
+      url: article.url ?? '',
+      urlToImage: article.urlToImage ?? '',
       savedAt: DateTime.now(),
     );
     context.read<FavoritesBloc>().add(ToggleFavoriteEvent(favorite));
@@ -263,12 +317,12 @@ class _SwipeableCardState extends State<_SwipeableCard>
   }
 
   void _onSwipeLeft() {
-    final news = widget.news;
+    final article = widget.article;
     final draft = DraftEntity(
-      title: news.title,
-      content: news.subtitle,
-      imagePath: news.imageUrl,
-      author: 'News Feed',
+      title: article.title,
+      content: article.description ?? article.content,
+      imagePath: article.urlToImage,
+      author: article.author,
     );
     Navigator.pushNamed(context, '/UploadArticle', arguments: draft);
   }
@@ -332,12 +386,7 @@ class _SwipeableCardState extends State<_SwipeableCard>
             onHorizontalDragUpdate: _onHorizontalDragUpdate,
             onHorizontalDragEnd: _onHorizontalDragEnd,
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => NewsDetailScreen(news: widget.news),
-                ),
-              );
+              Navigator.pushNamed(context, '/ArticleDetails', arguments: widget.article);
             },
             child: Transform.translate(
               offset: _dragOffset,
@@ -346,7 +395,7 @@ class _SwipeableCardState extends State<_SwipeableCard>
                 child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  NewsCard(news: widget.news),
+                  _NewsCard(article: widget.article),
 
                   // SAVE overlay (swipe right)
                   if (_dragOffset.dx > 20)
@@ -425,7 +474,6 @@ class _SwipeableCardState extends State<_SwipeableCard>
       ],
     );
   }
-
 }
 
 // ─────────────────────────────────────────────
@@ -445,31 +493,32 @@ class NewsFeedScreen extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// NEWS CARD (full-screen item)
+// NEWS CARD (full-screen item using ArticleEntity)
 // ─────────────────────────────────────────────
 
-class NewsCard extends StatelessWidget {
-  final NewsModel news;
+class _NewsCard extends StatelessWidget {
+  final ArticleEntity article;
 
-  const NewsCard({Key? key, required this.news}) : super(key: key);
+  const _NewsCard({required this.article});
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
       children: [
-        _BackgroundImage(imageUrl: news.imageUrl),
+        _BackgroundImage(imageUrl: article.urlToImage ?? ''),
         const _BottomGradient(),
-        const Positioned(
+        Positioned(
           top: 16,
           left: 16,
-          child: _TopBar(),
+          right: 80,
+          child: _TopBar(author: article.author),
         ),
         Positioned(
           bottom: 24,
           left: 20,
           right: 20,
-          child: _BottomContent(news: news),
+          child: _BottomContent(article: article),
         ),
         const Positioned(
           bottom: 8,
@@ -491,6 +540,14 @@ class _BackgroundImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (imageUrl.isEmpty) {
+      return Container(
+        color: const Color(0xFF1A1A2E),
+        child: const Center(
+          child: Icon(Icons.article_rounded, color: Colors.white24, size: 60),
+        ),
+      );
+    }
     return Image.network(
       imageUrl,
       fit: BoxFit.cover,
@@ -538,55 +595,52 @@ class _BottomGradient extends StatelessWidget {
 // ─── Top Bar ────────────────────────────────
 
 class _TopBar extends StatelessWidget {
-  const _TopBar();
+  final String? author;
+
+  const _TopBar({this.author});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 36,
-          height: 36,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: const EdgeInsets.only(left: 4, right: 14, top: 4, bottom: 4),
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            border: Border.all(color: Colors.white, width: 2),
+            color: Colors.black.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           ),
-          child: ClipOval(
-            child: Container(
-              color: Colors.black,
-              child: const Icon(Icons.newspaper, color: Colors.white, size: 20),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        const Text(
-          'News',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-            shadows: [Shadow(blurRadius: 4, color: Colors.black)],
-          ),
-        ),
-        const SizedBox(width: 10),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: Colors.red,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Text(
-            'BREAKING',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
-              letterSpacing: 0.5,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.15),
+                ),
+                child: const Icon(Icons.newspaper, color: Colors.white, size: 16),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  author ?? 'News',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -594,9 +648,21 @@ class _TopBar extends StatelessWidget {
 // ─── Bottom Content ──────────────────────────
 
 class _BottomContent extends StatelessWidget {
-  final NewsModel news;
+  final ArticleEntity article;
 
-  const _BottomContent({required this.news});
+  const _BottomContent({required this.article});
+
+  String _formatTimeAgo(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '';
+    final date = DateTime.tryParse(dateStr);
+    if (date == null) return dateStr;
+    final diff = DateTime.now().difference(date);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${date.day}/${date.month}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -605,7 +671,7 @@ class _BottomContent extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          news.title,
+          article.title ?? '',
           maxLines: 3,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
@@ -618,7 +684,7 @@ class _BottomContent extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          news.subtitle,
+          article.description ?? '',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
@@ -641,7 +707,7 @@ class _BottomContent extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              news.timeAgo,
+              _formatTimeAgo(article.publishedAt),
               style: const TextStyle(color: Colors.white70, fontSize: 13),
             ),
           ],
@@ -663,176 +729,5 @@ class _ScrollHint extends StatelessWidget {
         Icon(Icons.keyboard_arrow_up, color: Colors.white38, size: 20),
       ],
     );
-  }
-}
-
-// ─────────────────────────────────────────────
-// NEWS DETAIL SCREEN
-// ─────────────────────────────────────────────
-
-class NewsDetailScreen extends StatelessWidget {
-  final NewsModel news;
-
-  const NewsDetailScreen({Key? key, required this.news}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Stack(
-                children: [
-                  SizedBox(
-                    height: 320,
-                    width: double.infinity,
-                    child: Image.network(
-                      news.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFF1A1A2E),
-                        child: const Icon(Icons.broken_image,
-                            color: Colors.white38, size: 60),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 120,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            Color(0xFF0D0D0D),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.arrow_back_ios_new,
-                            color: Colors.white, size: 18),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'BREAKING',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          news.timeAgo,
-                          style:
-                              const TextStyle(color: Colors.grey, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      news.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      news.subtitle,
-                      style: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 16,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Divider(color: Colors.white.withValues(alpha: 0.1)),
-                    const SizedBox(height: 20),
-                    ..._buildBodyParagraphs(),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  List<Widget> _buildBodyParagraphs() {
-    const paragraphs = [
-      'Los investigadores y expertos del sector han confirmado que este avance representa uno de los hitos más significativos de la última década. El impacto potencial sobre millones de personas alrededor del mundo podría ser inconmensurable.',
-      'Fuentes cercanas al proyecto indicaron que el desarrollo llevó más de cinco años de investigación colaborativa entre instituciones de primer nivel en Europa, Asia y América del Norte.',
-      'Los primeros resultados experimentales superaron ampliamente las expectativas iniciales del equipo. La comunidad científica ya debate las implicaciones a largo plazo de este descubrimiento.',
-      'Los organismos reguladores internacionales han comenzado a revisar los datos preliminares con el objetivo de emitir una respuesta oficial en las próximas semanas. Se espera que los resultados completos se publiquen en una revista científica de alto impacto.',
-      'Este hito abre la puerta a una nueva era de posibilidades. Los próximos meses serán cruciales para determinar cómo esta tecnología —o descubrimiento— se integrará al tejido social, económico y tecnológico global.',
-    ];
-
-    return paragraphs.map((p) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Text(
-          p,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 15,
-            height: 1.7,
-          ),
-        ),
-      );
-    }).toList();
   }
 }

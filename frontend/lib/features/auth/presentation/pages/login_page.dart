@@ -16,12 +16,13 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  // COLORES CORPORATIVOS
-  static const Color kBgColor = Color(0xFFF9FAFB);
-  static const Color kPrimaryText = Color(0xFF111827);
-  static const Color kSecondaryText = Color(0xFF6B7280);
-  static const Color kBorderColor = Color(0xFFE5E7EB);
-  static const Color kCtaColor = Color(0xFF1E3A8A);
+  // Dark theme colors matching the home feed
+  static const Color kBackground = Color(0xFF000000);
+  static const Color kSurface = Color(0xFF1C1C1E);
+  static const Color kBorder = Color(0xFF2C2C2E);
+  static const Color kPrimaryText = Color(0xFFFFFFFF);
+  static const Color kSecondaryText = Color(0xFF8E8E93);
+  static const Color kAccent = Color(0xFF636366);
 
   @override
   void dispose() {
@@ -33,187 +34,32 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // El layout se encarga del fondo
+      backgroundColor: kBackground,
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthError) {
             ScaffoldMessenger.of(context).clearSnackBars();
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: kSurface,
+              ),
             );
           }
         },
         builder: (context, state) {
           if (state is AuthLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            );
           }
 
           return LayoutBuilder(
             builder: (context, constraints) {
               if (constraints.maxWidth > 800) {
-                // Desktop Layout: Split Screen
-                return Row(
-                  children: [
-                    // Left Column (Dark, 60% approx via Flex)
-                    Expanded(
-                      flex: 3,
-                      child: Container(
-                        color: const Color(0xFF0F172A),
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              bottom: -20,
-                              right: -20,
-                              child: Text(
-                                "NEWS",
-                                style: TextStyle(
-                                  fontSize: 140,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0x08FFFFFF),
-                                  letterSpacing: -5,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(60.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Text(
-                                    "NEWS APP",
-                                    style: TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  SizedBox(height: 24),
-                                  Text(
-                                    "Información clara. Contexto real. Análisis sin ruido.",
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.white70,
-                                      height: 1.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Right Column (Light, 40% approx via Flex)
-                    Expanded(
-                      flex: 2,
-                      child: Container(
-                        color: kBgColor,
-                        alignment: Alignment.center,
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(40),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 480),
-                            child: _buildRightColumn(),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
+                return _buildDesktopLayout();
               } else {
-                // Mobile Layout: Full Screen Background with content
-                return Stack(
-                  children: [
-                    // Full Screen Background Image
-                    Positioned.fill(
-                      child: Image.network(
-                        "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop",
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    // Full Screen Gradient Overlay
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            stops: const [0.0, 0.3, 1.0],
-                            colors: [
-                              const Color(0xFF0F172A).withValues(alpha: 0.9), // Dark Blue at top
-                              const Color(0xFF0F172A).withValues(alpha: 0.8),
-                              const Color(0xFFF9FAFB).withValues(alpha: 0.95), // Light Gray at bottom
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Background Watermark Text (Fixed at bottom right)
-                    Positioned(
-                      bottom: -20,
-                      right: -20,
-                      child: IgnorePointer(
-                        child: Text(
-                          "NEWS",
-                          style: TextStyle(
-                            fontSize: 100,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0F172A).withValues(alpha: 0.05),
-                            letterSpacing: -5,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Scrollable Content
-                    SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          // Header Content (Transparent background)
-                          SizedBox(
-                            height: 160,
-                            width: double.infinity,
-                            child: Stack(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: const [
-                                      Text(
-                                        "NEWS APP",
-                                        style: TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        "Información clara. Contexto real.",
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          color: Colors.white70,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Form Section
-                          Padding(
-                            padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
-                            child: _buildRightColumn(),
-                          ),
-                          const SizedBox(height: 40),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
+                return _buildMobileLayout();
               }
             },
           );
@@ -222,28 +68,170 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-
-
-  Widget _buildRightColumn() {
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      margin: EdgeInsets.zero,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+  Widget _buildDesktopLayout() {
+    return Row(
+      children: [
+        // Left branding panel
+        Expanded(
+          flex: 3,
+          child: Container(
+            color: kBackground,
+            child: Stack(
+              children: [
+                Positioned(
+                  bottom: -20,
+                  right: -20,
+                  child: Text(
+                    "NEWS",
+                    style: TextStyle(
+                      fontSize: 140,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white.withValues(alpha: 0.03),
+                      letterSpacing: -5,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(60.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Text(
+                        "NEWS APP",
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      SizedBox(height: 24),
+                      Text(
+                        "Información clara. Contexto real. Análisis sin ruido.",
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: kSecondaryText,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-        padding: const EdgeInsets.all(40),
-        child: Form(
+        // Right form panel
+        Expanded(
+          flex: 2,
+          child: Container(
+            color: kSurface,
+            alignment: Alignment.center,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(40),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: _buildForm(),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return Stack(
+      children: [
+        // Background gradient
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  kSurface,
+                  kBackground,
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Watermark
+        Positioned(
+          bottom: -20,
+          right: -20,
+          child: IgnorePointer(
+            child: Text(
+              "NEWS",
+              style: TextStyle(
+                fontSize: 100,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withValues(alpha: 0.03),
+                letterSpacing: -5,
+              ),
+            ),
+          ),
+        ),
+        // Content
+        SingleChildScrollView(
+          child: Column(
+            children: [
+              // Header
+              SizedBox(
+                height: 160,
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Text(
+                        "NEWS APP",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        "Información clara. Contexto real.",
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: kSecondaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Form
+              Padding(
+                padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
+                child: _buildForm(),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildForm() {
+    return Container(
+      decoration: BoxDecoration(
+        color: kSurface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: kBorder, width: 1),
+      ),
+      padding: const EdgeInsets.all(32),
+      child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,9 +240,10 @@ class _LoginPageState extends State<LoginPage> {
             const Text(
               "Iniciar sesión",
               style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
                 color: kPrimaryText,
+                letterSpacing: -0.5,
               ),
             ),
             const SizedBox(height: 8),
@@ -266,8 +255,8 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
             const SizedBox(height: 32),
-            
-            // Email Field
+
+            // Email
             _buildLabel("Correo electrónico"),
             const SizedBox(height: 8),
             _buildTextField(
@@ -280,10 +269,9 @@ class _LoginPageState extends State<LoginPage> {
                 return null;
               },
             ),
-            
             const SizedBox(height: 24),
-            
-            // Password Field
+
+            // Password
             _buildLabel("Contraseña"),
             const SizedBox(height: 8),
             _buildTextField(
@@ -300,17 +288,17 @@ class _LoginPageState extends State<LoginPage> {
 
             const SizedBox(height: 32),
 
-            // Button
+            // Login button
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: kCtaColor,
-                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                 ),
                 onPressed: () {
@@ -327,20 +315,18 @@ class _LoginPageState extends State<LoginPage> {
                   "Ingresar",
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ),
 
             const SizedBox(height: 16),
-            
-            // Forgot Password
+
+            // Forgot password
             Center(
               child: TextButton(
-                onPressed: () {
-                  // Lógica de recuperación
-                },
+                onPressed: () {},
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
                   minimumSize: Size.zero,
@@ -356,35 +342,36 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
 
-            // Google Sign In
+            // Divider
             const SizedBox(height: 24),
             Row(
               children: [
-                const Expanded(child: Divider(color: kBorderColor)),
+                const Expanded(child: Divider(color: kBorder)),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text("O", style: TextStyle(color: kSecondaryText, fontSize: 12)),
                 ),
-                const Expanded(child: Divider(color: kBorderColor)),
+                const Expanded(child: Divider(color: kBorder)),
               ],
             ),
             const SizedBox(height: 24),
-            
+
+            // Google button
             SizedBox(
               width: double.infinity,
               height: 50,
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: kBorderColor),
+                  side: const BorderSide(color: kBorder),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                   foregroundColor: kPrimaryText,
                 ),
                 onPressed: () {
                   context.read<AuthBloc>().add(SignInWithGoogleEvent());
                 },
-                icon: const Icon(Icons.g_mobiledata, size: 28), 
+                icon: const Icon(Icons.g_mobiledata, size: 28),
                 label: const Text(
                   "Continuar con Google",
                   style: TextStyle(
@@ -395,12 +382,40 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
 
-             // Footer: Register / Google (Keeping functional but minimizing style)
+            const SizedBox(height: 12),
+
+            // GitHub button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: kBorder),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  foregroundColor: kPrimaryText,
+                ),
+                onPressed: () {
+                  context.read<AuthBloc>().add(SignInWithGithubEvent());
+                },
+                icon: const Icon(Icons.code, size: 24),
+                label: const Text(
+                  "Continuar con GitHub",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+
+            // Register link
             const SizedBox(height: 24),
             Center(
               child: GestureDetector(
                 onTap: () {
-                   Navigator.of(context).pushNamed('/Register');
+                  Navigator.of(context).pushNamed('/Register');
                 },
                 child: RichText(
                   text: const TextSpan(
@@ -410,7 +425,7 @@ class _LoginPageState extends State<LoginPage> {
                       TextSpan(
                         text: "Crear cuenta",
                         style: TextStyle(
-                          color: kCtaColor,
+                          color: Colors.white,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -422,7 +437,6 @@ class _LoginPageState extends State<LoginPage> {
           ],
         ),
       ),
-    ),
     );
   }
 
@@ -432,7 +446,7 @@ class _LoginPageState extends State<LoginPage> {
       style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w500,
-        color: kPrimaryText,
+        color: kSecondaryText,
       ),
     );
   }
@@ -451,28 +465,29 @@ class _LoginPageState extends State<LoginPage> {
         color: kPrimaryText,
         fontSize: 15,
       ),
+      cursorColor: Colors.white,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: kSecondaryText.withValues(alpha: 0.7)),
+        hintStyle: TextStyle(color: kAccent.withValues(alpha: 0.7)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: kBorderColor),
-          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: kBorder),
+          borderRadius: BorderRadius.circular(14),
         ),
-        focusedBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: kCtaColor, width: 1.5),
-          borderRadius: BorderRadius.all(Radius.circular(6)),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.white, width: 1.5),
+          borderRadius: BorderRadius.circular(14),
         ),
-        errorBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.red),
-          borderRadius: BorderRadius.all(Radius.circular(6)),
+        errorBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.red),
+          borderRadius: BorderRadius.circular(14),
         ),
-        focusedErrorBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.red, width: 1.5),
-          borderRadius: BorderRadius.all(Radius.circular(6)),
+        focusedErrorBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          borderRadius: BorderRadius.circular(14),
         ),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: kBackground,
       ),
     );
   }

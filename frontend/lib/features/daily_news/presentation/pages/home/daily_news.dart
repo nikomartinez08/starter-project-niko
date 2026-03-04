@@ -8,6 +8,9 @@ import 'package:news_app_clean_architecture/features/daily_news/presentation/blo
 import 'package:news_app_clean_architecture/core/constants/constants.dart';
 
 import '../../../domain/entities/article.dart';
+import '../../bloc/article/local/local_article_bloc.dart';
+import '../../bloc/article/local/local_article_event.dart';
+import '../../bloc/article/local/local_article_state.dart';
 import '../../../../profile/presentation/bloc/profile_bloc.dart';
 import '../../../../profile/presentation/bloc/profile_event.dart';
 import '../../../../profile/presentation/pages/profile_page.dart';
@@ -25,27 +28,89 @@ class DailyNews extends StatefulWidget {
 class _DailyNewsState extends State<DailyNews> {
   int _currentIndex = 0;
   String _selectedCategory = 'All';
+  String _searchQuery = '';
   final List<String> _categories = ['All', 'Technology', 'Politics', 'Sports', 'Finance'];
+  final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  late final LocalArticleBloc _localArticleBloc;
+  Set<String> _savedTitles = {};
 
   static const _surface = Color(0xFF1C1C1E);
   static const _border = Color(0xFF2C2C2E);
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    _localArticleBloc = sl<LocalArticleBloc>()..add(const GetSavedArticles());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _searchController.dispose();
+    _localArticleBloc.close();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      context.read<RemoteArticlesBloc>().add(const LoadMoreArticles());
+    }
+  }
+
+  List<ArticleEntity> _filterOutSaved(List<ArticleEntity> articles) {
+    if (_savedTitles.isEmpty) return articles;
+    return articles.where((a) => !_savedTitles.contains(a.title)).toList();
+  }
+
+  void _refreshSavedArticles() {
+    _localArticleBloc.add(const GetSavedArticles());
+  }
+
+  @override
   Widget build(BuildContext context) {
     final bool isFeedTab = _currentIndex == 1;
-    return Scaffold(
-      appBar: isFeedTab ? null : _buildAppBar(context),
-      backgroundColor: Colors.black,
-      extendBody: true,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          _buildHomeBody(),
-          const NewsFeedContent(),
-          _buildProfileBody(),
-        ],
+    return BlocProvider.value(
+      value: _localArticleBloc,
+      child: BlocListener<LocalArticleBloc, LocalArticlesState>(
+        listener: (context, state) {
+          if (state is LocalArticlesDone) {
+            setState(() {
+              _savedTitles = (state.articles ?? [])
+                  .map((a) => a.title)
+                  .whereType<String>()
+                  .toSet();
+            });
+          }
+        },
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: Scaffold(
+            appBar: isFeedTab ? null : _buildAppBar(context),
+            backgroundColor: Colors.black,
+            extendBody: true,
+            body: _currentIndex == 0
+                ? _buildHomeBody()
+                : _currentIndex == 1
+                    ? NewsFeedContent(savedTitles: _savedTitles)
+                    : _buildProfileBody(),
+            floatingActionButton: isFeedTab
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: 80),
+                    child: FloatingActionButton(
+                      onPressed: () => Navigator.pushNamed(context, '/BroadcasterScreen'),
+                      backgroundColor: Colors.red,
+                      child: const Icon(Icons.videocam_rounded, color: Colors.white),
+                    ),
+                  )
+                : null,
+            bottomNavigationBar: _buildBottomNavBar(context),
+          ),
+        ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
 
@@ -147,10 +212,64 @@ class _DailyNewsState extends State<DailyNews> {
     );
   }
 
+  List<ArticleEntity> _filterBySearch(List<ArticleEntity> articles) {
+    if (_searchQuery.isEmpty) return articles;
+    final q = _searchQuery.toLowerCase();
+    return articles.where((a) {
+      final title = (a.title ?? '').toLowerCase();
+      final author = (a.author ?? '').toLowerCase();
+      final desc = (a.description ?? '').toLowerCase();
+      return title.contains(q) || author.contains(q) || desc.contains(q);
+    }).toList();
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) => setState(() => _searchQuery = value.trim()),
+        style: const TextStyle(color: Colors.white, fontSize: 15),
+        decoration: InputDecoration(
+          hintText: 'Search articles...',
+          hintStyle: TextStyle(color: Colors.grey[600], fontSize: 15),
+          prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[600], size: 22),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? GestureDetector(
+                  onTap: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                  child: Icon(Icons.close_rounded, color: Colors.grey[600], size: 20),
+                )
+              : null,
+          filled: true,
+          fillColor: _surface,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: _border),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: _border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Colors.white24),
+          ),
+        ),
+        keyboardAppearance: Brightness.dark,
+        textInputAction: TextInputAction.search,
+      ),
+    );
+  }
+
   Widget _buildHomeBody() {
     return BlocBuilder<RemoteArticlesBloc, RemoteArticlesState>(
       builder: (context, state) {
         final List<Widget> slivers = [
+          SliverToBoxAdapter(child: _buildSearchBar()),
           SliverToBoxAdapter(child: _buildCategoryChips()),
         ];
 
@@ -200,12 +319,13 @@ class _DailyNewsState extends State<DailyNews> {
             ),
           );
         } else if (state is RemoteArticlesDone) {
-          if (state.articles == null || state.articles!.isEmpty) {
+          final articles = _filterOutSaved(_filterBySearch(state.articles ?? []));
+          if (articles.isEmpty) {
             slivers.add(
               SliverFillRemaining(
                 child: Center(
                   child: Text(
-                    'No articles found',
+                    _searchQuery.isNotEmpty ? 'No results for "$_searchQuery"' : 'No articles found',
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                 ),
@@ -214,17 +334,17 @@ class _DailyNewsState extends State<DailyNews> {
           } else {
             slivers.add(
               SliverToBoxAdapter(
-                child: _buildHeroCard(context, state.articles![0]),
+                child: _buildHeroCard(context, articles[0]),
               ),
             );
             slivers.add(SliverToBoxAdapter(child: _buildSectionHeader('Top Stories')));
             slivers.add(
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 sliver: SliverGrid(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildGridCard(context, state.articles![index + 1]),
-                    childCount: state.articles!.length - 1,
+                    (context, index) => _buildGridCard(context, articles[index + 1]),
+                    childCount: articles.length - 1,
                   ),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
@@ -235,12 +355,44 @@ class _DailyNewsState extends State<DailyNews> {
                 ),
               ),
             );
+            // Loading more indicator or end-of-list spacer
+            if (state is RemoteArticlesLoadingMore) {
+              slivers.add(
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: CupertinoActivityIndicator(color: Colors.white),
+                    ),
+                  ),
+                ),
+              );
+            }
+            // Bottom padding for nav bar
+            slivers.add(
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            );
           }
         } else {
           slivers.add(const SliverToBoxAdapter(child: SizedBox()));
         }
 
-        return CustomScrollView(slivers: slivers);
+        return RefreshIndicator(
+          onRefresh: () async {
+            context.read<RemoteArticlesBloc>().add(const RefreshArticles());
+            // Wait for the bloc to emit a non-loading state
+            await context.read<RemoteArticlesBloc>().stream.firstWhere(
+              (s) => s is RemoteArticlesDone || s is RemoteArticlesError,
+            );
+          },
+          color: Colors.white,
+          backgroundColor: _surface,
+          child: CustomScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: slivers,
+          ),
+        );
       },
     );
   }
@@ -393,9 +545,13 @@ class _DailyNewsState extends State<DailyNews> {
                     Row(
                       children: [
                         if ((article.author ?? '').isNotEmpty) ...[
-                          Text(
-                            article.author!,
-                            style: const TextStyle(color: Colors.white60, fontSize: 12),
+                          Flexible(
+                            child: Text(
+                              article.author!,
+                              style: const TextStyle(color: Colors.white60, fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                           const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 6),
@@ -578,7 +734,9 @@ class _DailyNewsState extends State<DailyNews> {
   }
 
   void _onArticlePressed(BuildContext context, ArticleEntity article) {
-    Navigator.pushNamed(context, '/ArticleDetails', arguments: article);
+    Navigator.pushNamed(context, '/ArticleDetails', arguments: article).then((_) {
+      _refreshSavedArticles();
+    });
   }
 
   void _onShowFavoritesViewTapped(BuildContext context) {

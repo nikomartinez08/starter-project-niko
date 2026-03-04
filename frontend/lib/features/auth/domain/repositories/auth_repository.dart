@@ -7,6 +7,8 @@ abstract class AuthRepository {
 
   Future<UserEntity> signInWithGoogle();
 
+  Future<void> signInWithGithub();
+
   Future<void> signOut();
   
   Future<void> deleteAccount();

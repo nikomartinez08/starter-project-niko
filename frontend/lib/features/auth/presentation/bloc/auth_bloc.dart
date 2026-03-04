@@ -5,6 +5,7 @@ import '../../domain/usecases/sign_out_usecase.dart';
 import '../../domain/usecases/sign_up_usecase.dart';
 import '../../domain/usecases/delete_account_usecase.dart';
 import '../../domain/usecases/sign_in_with_google_usecase.dart';
+import '../../domain/usecases/sign_in_with_github_usecase.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -15,6 +16,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final DeleteAccountUseCase _deleteAccountUseCase;
   final GetCurrentUserUseCase _getCurrentUserUseCase;
   final SignInWithGoogleUseCase _signInWithGoogleUseCase;
+  final SignInWithGithubUseCase _signInWithGithubUseCase;
 
   AuthBloc(
     this._signInUseCase,
@@ -23,10 +25,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     this._deleteAccountUseCase,
     this._getCurrentUserUseCase,
     this._signInWithGoogleUseCase,
+    this._signInWithGithubUseCase,
   ) : super(AuthInitial()) {
     on<CheckAuthStatusEvent>(_onCheckAuthStatus);
     on<SignInEvent>(_onSignIn);
     on<SignInWithGoogleEvent>(_onSignInWithGoogle);
+    on<SignInWithGithubEvent>(_onSignInWithGithub);
     on<SignUpEvent>(_onSignUp);
     on<SignOutEvent>(_onSignOut);
     on<DeleteAccountEvent>(_onDeleteAccount);
@@ -63,6 +67,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final user = await _signInWithGoogleUseCase();
       emit(Authenticated(user));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  Future<void> _onSignInWithGithub(SignInWithGithubEvent event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      await _signInWithGithubUseCase();
+      // OAuth flow opens browser — session will be picked up by onAuthStateChange
     } catch (e) {
       emit(AuthError(e.toString()));
     }
