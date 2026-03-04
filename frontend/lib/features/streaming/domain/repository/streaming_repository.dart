@@ -15,4 +15,5 @@ abstract class StreamingRepository {
     required bool isBroadcaster,
   });
   Future<void> updateViewerCount(String streamId, int delta);
+  Future<LiveStreamEntity?> getStreamById(String streamId);
 }

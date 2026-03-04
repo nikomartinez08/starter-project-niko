@@ -65,6 +65,7 @@ import 'package:news_app_clean_architecture/features/streaming/domain/usecases/c
 import 'package:news_app_clean_architecture/features/streaming/domain/usecases/end_stream_usecase.dart';
 import 'package:news_app_clean_architecture/features/streaming/domain/usecases/get_active_streams_usecase.dart';
 import 'package:news_app_clean_architecture/features/streaming/domain/usecases/get_stream_token_usecase.dart';
+import 'package:news_app_clean_architecture/features/streaming/domain/usecases/get_stream_by_id_usecase.dart';
 import 'package:news_app_clean_architecture/features/streaming/presentation/bloc/streaming_bloc.dart';
 
 final sl = GetIt.instance;
@@ -218,6 +219,7 @@ Future<void> initializeDependencies() async {
   sl.registerSingleton<EndStreamUseCase>(EndStreamUseCase(sl()));
   sl.registerSingleton<GetActiveStreamsUseCase>(GetActiveStreamsUseCase(sl()));
   sl.registerSingleton<GetStreamTokenUseCase>(GetStreamTokenUseCase(sl()));
+  sl.registerSingleton<GetStreamByIdUseCase>(GetStreamByIdUseCase(sl()));
 
   sl.registerFactory<StreamingBloc>(
       () => StreamingBloc(sl(), sl(), sl()));

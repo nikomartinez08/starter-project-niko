@@ -50,4 +50,8 @@ class StreamingRepositoryImpl implements StreamingRepository {
   @override
   Future<void> updateViewerCount(String streamId, int delta) =>
       _remoteDataSource.updateViewerCount(streamId, delta);
+
+  @override
+  Future<LiveStreamEntity?> getStreamById(String streamId) =>
+      _remoteDataSource.getStreamById(streamId);
 }

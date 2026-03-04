@@ -4,6 +4,7 @@ import '../../data/data_sources/local/agora_service.dart';
 import '../../domain/entities/live_stream_entity.dart';
 import '../../domain/repository/streaming_repository.dart';
 import '../../../../injection_container.dart';
+import '../utils/share_stream.dart';
 
 class ViewerScreen extends StatefulWidget {
   final LiveStreamEntity stream;
@@ -209,6 +210,20 @@ class _ViewerScreenState extends State<ViewerScreen> {
                     ),
                   ),
                   const Spacer(),
+                  // Share button
+                  GestureDetector(
+                    onTap: () => shareStream(widget.stream),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.share_rounded,
+                          color: Colors.white, size: 22),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   // Close button
                   GestureDetector(
                     onTap: _leave,

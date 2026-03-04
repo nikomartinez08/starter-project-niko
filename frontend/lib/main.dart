@@ -9,6 +9,9 @@ import 'package:news_app_clean_architecture/features/auth/presentation/bloc/auth
 import 'package:news_app_clean_architecture/features/auth/presentation/bloc/auth_state.dart';
 import 'package:news_app_clean_architecture/features/auth/presentation/pages/login_page.dart';
 import 'config/theme/app_themes.dart';
+import 'core/services/deep_link_service.dart';
+import 'features/streaming/domain/usecases/get_stream_by_id_usecase.dart';
+import 'injection_container.dart' as di;
 import 'features/daily_news/presentation/bloc/article/remote/remote_article_bloc.dart';
 import 'features/favorites/presentation/bloc/favorites_bloc.dart';
 import 'features/favorites/presentation/bloc/favorites_event.dart';
@@ -35,8 +38,32 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  late final DeepLinkService _deepLinkService;
+
+  @override
+  void initState() {
+    super.initState();
+    _deepLinkService = DeepLinkService(
+      navigatorKey: _navigatorKey,
+      getStreamByIdUseCase: di.sl<GetStreamByIdUseCase>(),
+    );
+    _deepLinkService.init();
+  }
+
+  @override
+  void dispose() {
+    _deepLinkService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +83,7 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
+          navigatorKey: _navigatorKey,
           debugShowCheckedModeBanner: false,
           theme: theme(),
           onGenerateRoute: AppRoutes.onGenerateRoutes,

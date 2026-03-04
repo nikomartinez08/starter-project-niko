@@ -8,6 +8,15 @@ class StreamingSupabaseServiceImpl implements StreamingRemoteDataSource {
 
   @override
   Future<LiveStreamModel> createStream(LiveStreamModel stream) async {
+    // End any stale live streams before starting a new one
+    await _supabaseClient
+        .from('live_streams')
+        .update({
+          'is_live': false,
+          'ended_at': DateTime.now().toIso8601String(),
+        })
+        .eq('is_live', true);
+
     final response = await _supabaseClient
         .from('live_streams')
         .insert(stream.toJson())
@@ -51,5 +60,16 @@ class StreamingSupabaseServiceImpl implements StreamingRemoteDataSource {
         .from('live_streams')
         .update({'viewer_count': newCount < 0 ? 0 : newCount})
         .eq('id', streamId);
+  }
+
+  @override
+  Future<LiveStreamModel?> getStreamById(String streamId) async {
+    final response = await _supabaseClient
+        .from('live_streams')
+        .select()
+        .eq('id', streamId)
+        .maybeSingle();
+    if (response == null) return null;
+    return LiveStreamModel.fromJson(response);
   }
 }

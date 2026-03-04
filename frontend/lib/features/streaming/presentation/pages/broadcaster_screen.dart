@@ -8,6 +8,8 @@ import '../bloc/streaming_bloc.dart';
 import '../bloc/streaming_event.dart';
 import '../bloc/streaming_state.dart';
 import '../../../../injection_container.dart';
+import '../../domain/repository/streaming_repository.dart';
+import '../utils/share_stream.dart';
 
 class BroadcasterScreen extends StatefulWidget {
   const BroadcasterScreen({Key? key}) : super(key: key);
@@ -19,6 +21,7 @@ class BroadcasterScreen extends StatefulWidget {
 class _BroadcasterScreenState extends State<BroadcasterScreen> {
   final _titleController = TextEditingController();
   final _agoraService = sl<AgoraService>();
+  final _repository = sl<StreamingRepository>();
   bool _isPreview = true;
   bool _isInitialized = false;
   bool _isMuted = false;
@@ -79,6 +82,7 @@ class _BroadcasterScreenState extends State<BroadcasterScreen> {
   Future<void> _endStream() async {
     if (_activeStream?.id != null) {
       context.read<StreamingBloc>().add(EndStream(_activeStream!.id!));
+      _activeStream = null; // Prevent dispose from ending again
     }
     await _agoraService.leaveChannel();
     if (mounted) Navigator.of(context).pop();
@@ -86,6 +90,9 @@ class _BroadcasterScreenState extends State<BroadcasterScreen> {
 
   @override
   void dispose() {
+    if (_activeStream?.id != null) {
+      _repository.endStream(_activeStream!.id!);
+    }
     _titleController.dispose();
     _agoraService.dispose();
     super.dispose();
@@ -333,6 +340,13 @@ class _BroadcasterScreenState extends State<BroadcasterScreen> {
           icon: Icons.cameraswitch_rounded,
           label: 'Flip',
           onTap: () => _agoraService.switchCamera(),
+        ),
+        _controlButton(
+          icon: Icons.share_rounded,
+          label: 'Share',
+          onTap: () {
+            if (_activeStream != null) shareStream(_activeStream!);
+          },
         ),
         _controlButton(
           icon: Icons.stop_circle_outlined,

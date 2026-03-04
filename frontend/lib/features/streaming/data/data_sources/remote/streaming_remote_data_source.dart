@@ -5,4 +5,5 @@ abstract class StreamingRemoteDataSource {
   Future<void> endStream(String streamId);
   Future<List<LiveStreamModel>> getActiveStreams();
   Future<void> updateViewerCount(String streamId, int delta);
+  Future<LiveStreamModel?> getStreamById(String streamId);
 }

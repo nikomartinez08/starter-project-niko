@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../domain/entities/live_stream_entity.dart';
+import '../utils/share_stream.dart';
 
 class LiveStreamCard extends StatelessWidget {
   final LiveStreamEntity stream;
@@ -16,6 +17,7 @@ class LiveStreamCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: () => shareStream(stream),
       child: Container(
         color: Colors.black,
         child: Stack(
