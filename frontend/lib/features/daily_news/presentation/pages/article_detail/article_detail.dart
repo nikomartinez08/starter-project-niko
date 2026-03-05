@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../../injection_container.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../../domain/entities/article.dart';
 import '../../../../favorites/domain/entities/favorite_article.dart';
 import '../../../../favorites/presentation/bloc/favorites_bloc.dart';
@@ -193,15 +193,79 @@ class _ArticleDetailsViewState extends State<ArticleDetailsView> {
           const SizedBox(height: 22),
           Container(height: 1, color: _border),
           const SizedBox(height: 22),
-          Text(
-            body.isNotEmpty ? body : 'No content available.',
-            style: const TextStyle(
-              color: _bodyText,
-              fontSize: 16,
-              height: 1.85,
-              letterSpacing: 0.1,
-            ),
-          ),
+          body.isNotEmpty
+              ? MarkdownBody(
+                  data: body,
+                  selectable: true,
+                  styleSheet: MarkdownStyleSheet(
+                    h1: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    ),
+                    h2: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    h3: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    p: const TextStyle(
+                      color: _bodyText,
+                      fontSize: 16,
+                      height: 1.85,
+                      letterSpacing: 0.1,
+                    ),
+                    strong: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    em: const TextStyle(
+                      color: Color(0xFFD0D0D0),
+                      fontStyle: FontStyle.italic,
+                    ),
+                    a: const TextStyle(color: Color(0xFF6B9FFF)),
+                    del: TextStyle(color: Colors.grey[600]),
+                    listBullet: const TextStyle(color: _secondaryText, fontSize: 16),
+                    code: const TextStyle(
+                      color: Color(0xFFE8C07D),
+                      backgroundColor: Color(0xFF2C2C2E),
+                      fontFamily: 'monospace',
+                      fontSize: 14,
+                    ),
+                    codeblockDecoration: BoxDecoration(
+                      color: _surface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _border),
+                    ),
+                    codeblockPadding: const EdgeInsets.all(16),
+                    blockquoteDecoration: const BoxDecoration(
+                      border: Border(
+                        left: BorderSide(color: Color(0xFF6B9FFF), width: 3),
+                      ),
+                    ),
+                    blockquotePadding:
+                        const EdgeInsets.only(left: 16, top: 4, bottom: 4),
+                    horizontalRuleDecoration: const BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: _border, width: 1),
+                      ),
+                    ),
+                  ),
+                )
+              : const Text(
+                  'No content available.',
+                  style: TextStyle(
+                    color: _bodyText,
+                    fontSize: 16,
+                    height: 1.85,
+                    letterSpacing: 0.1,
+                  ),
+                ),
         ],
       ),
     );

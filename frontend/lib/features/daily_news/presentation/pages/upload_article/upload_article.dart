@@ -28,7 +28,6 @@ class _UploadArticlePageState extends State<UploadArticlePage> {
   final ImagePicker _picker = ImagePicker();
   bool _isPickingImage = false;
 
-  bool _isPreviewMode = false;
   int? _currentDraftId;
   bool _hasUnsavedChanges = false;
   Timer? _autoSaveTimer;
@@ -63,9 +62,7 @@ class _UploadArticlePageState extends State<UploadArticlePage> {
   }
 
   void _onContentChanged() {
-    if (!_hasUnsavedChanges) {
-      setState(() => _hasUnsavedChanges = true);
-    }
+    setState(() => _hasUnsavedChanges = true);
   }
 
   @override
@@ -166,6 +163,111 @@ class _UploadArticlePageState extends State<UploadArticlePage> {
     );
   }
 
+  void _openContentEditor(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: _bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, scrollController) => Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[700],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Write Content',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(ctx),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Text(
+                          'Done',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, thickness: 1, color: _border),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 16, 22, 0),
+                  child: TextField(
+                    controller: _contentController,
+                    autofocus: true,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      height: 1.8,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: 'Write your content using markdown...',
+                      hintStyle: TextStyle(
+                        color: _hintText,
+                        fontSize: 16,
+                        height: 1.8,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
+                    ),
+                    maxLines: null,
+                    expands: true,
+                    keyboardType: TextInputType.multiline,
+                    keyboardAppearance: Brightness.dark,
+                    textAlignVertical: TextAlignVertical.top,
+                  ),
+                ),
+              ),
+              MarkdownToolbar(
+                controller: _contentController,
+                onChanged: () => setState(() {}),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).then((_) => setState(() {}));
+  }
+
   void _showActionsSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -187,14 +289,6 @@ class _UploadArticlePageState extends State<UploadArticlePage> {
               ),
             ),
             _SheetTile(
-              icon: _isPreviewMode ? Icons.edit_outlined : Icons.visibility_outlined,
-              label: _isPreviewMode ? 'Back to Edit' : 'Preview',
-              onTap: () {
-                Navigator.pop(ctx);
-                setState(() => _isPreviewMode = !_isPreviewMode);
-              },
-            ),
-            _SheetTile(
               icon: Icons.save_outlined,
               label: 'Save Draft',
               trailing: _hasUnsavedChanges
@@ -210,24 +304,6 @@ class _UploadArticlePageState extends State<UploadArticlePage> {
               onTap: () {
                 Navigator.pop(ctx);
                 _saveDraft(context);
-              },
-            ),
-            _SheetTile(
-              icon: Icons.folder_outlined,
-              label: 'My Drafts',
-              onTap: () async {
-                Navigator.pop(ctx);
-                final result = await Navigator.pushNamed(context, '/Drafts');
-                if (result is DraftEntity && mounted) {
-                  setState(() {
-                    _titleController.text = result.title ?? '';
-                    _authorController.text = result.author ?? '';
-                    _contentController.text = result.content ?? '';
-                    _selectedImagePath = result.imagePath;
-                    _currentDraftId = result.id;
-                    _hasUnsavedChanges = false;
-                  });
-                }
               },
             ),
             _SheetTile(
@@ -276,15 +352,8 @@ class _UploadArticlePageState extends State<UploadArticlePage> {
                             strokeWidth: 2,
                           ),
                         )
-                      : _isPreviewMode
-                          ? _buildPreview()
-                          : _buildEditor(),
+                      : _buildEditor(),
                 ),
-                if (!_isPreviewMode)
-                  MarkdownToolbar(
-                    controller: _contentController,
-                    onChanged: () => setState(() {}),
-                  ),
               ],
             ),
           );
@@ -424,29 +493,52 @@ class _UploadArticlePageState extends State<UploadArticlePage> {
                 const SizedBox(height: 22),
                 Container(height: 1, color: _border),
                 const SizedBox(height: 22),
-                // Content
-                TextField(
-                  controller: _contentController,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    height: 1.8,
-                  ),
-                  decoration: const InputDecoration(
-                    hintText: 'Tell your story...',
-                    hintStyle: TextStyle(
-                      color: _hintText,
-                      fontSize: 16,
-                      height: 1.8,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                    isDense: true,
-                  ),
-                  maxLines: null,
-                  minLines: 16,
-                  keyboardType: TextInputType.multiline,
-                  keyboardAppearance: Brightness.dark,
+                // Always show rendered markdown — tap to edit in sheet
+                GestureDetector(
+                  onTap: () => _openContentEditor(context),
+                  behavior: HitTestBehavior.translucent,
+                  child: _contentController.text.trim().isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_outlined, color: _hintText, size: 16),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Tap to start writing...',
+                                style: TextStyle(
+                                  color: _hintText,
+                                  fontSize: 16,
+                                  height: 1.8,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            MarkdownPreview(
+                              data: _contentController.text,
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.edit_outlined,
+                                    color: Colors.grey[700], size: 14),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Tap to edit',
+                                  style: TextStyle(
+                                    color: Colors.grey[700],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                 ),
                 const SizedBox(height: 60),
               ],
@@ -531,46 +623,6 @@ class _UploadArticlePageState extends State<UploadArticlePage> {
           border: Border.all(color: Colors.white12),
         ),
         child: Icon(icon, color: Colors.white, size: 18),
-      ),
-    );
-  }
-
-  Widget _buildPreview() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(22, 24, 22, 40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_selectedImagePath != null) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: _buildImageWidget(_selectedImagePath!, height: 200),
-            ),
-            const SizedBox(height: 22),
-          ],
-          if (_titleController.text.isNotEmpty)
-            Text(
-              _titleController.text,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                height: 1.3,
-                letterSpacing: -0.8,
-              ),
-            ),
-          if (_authorController.text.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              'by ${_authorController.text}',
-              style: const TextStyle(color: _secondaryText, fontSize: 15),
-            ),
-          ],
-          const SizedBox(height: 20),
-          Container(height: 1, color: _border),
-          const SizedBox(height: 8),
-          MarkdownPreview(data: _contentController.text),
-        ],
       ),
     );
   }

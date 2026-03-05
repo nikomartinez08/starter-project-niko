@@ -29,10 +29,9 @@ class MarkdownPreview extends StatelessWidget {
       );
     }
 
-    return Markdown(
+    return MarkdownBody(
       data: data,
       selectable: true,
-      padding: const EdgeInsets.only(bottom: 40),
       styleSheet: MarkdownStyleSheet(
         h1: const TextStyle(
           color: Colors.white,
