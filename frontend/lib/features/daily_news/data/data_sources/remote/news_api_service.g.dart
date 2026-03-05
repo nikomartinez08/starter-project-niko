@@ -20,7 +20,7 @@ class _NewsApiService implements NewsApiService {
       {apiKey, country, category, page, pageSize}) async {
     const _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{
-      r'apiKey': apiKey,
+      r'token': apiKey, // Manual fix: using 'token' instead of 'apiKey' for GNews
       r'country': country,
       r'category': category,
       r'page': page,
@@ -34,7 +34,7 @@ class _NewsApiService implements NewsApiService {
             Options(method: 'GET', headers: _headers, extra: _extra)
                 .compose(_dio.options, '/top-headlines',
                     queryParameters: queryParameters, data: _data)
-                .copyWith(baseUrl: baseUrl ?? _dio.options.baseUrl)));
+                .copyWith(baseUrl: baseUrl ?? 'https://gnews.io/api/v4'))); // Manual fix: GNews URL
     List<ArticleModel> value = _result.data!['articles']
         .map<ArticleModel>((dynamic i) => ArticleModel.fromJson(i as Map<String, dynamic>))
         .toList();

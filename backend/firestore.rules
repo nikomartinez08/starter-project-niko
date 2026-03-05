@@ -5,14 +5,13 @@ service cloud.firestore {
     // Function to check if the incoming data is a valid Article
     function isValidArticle(data) {
       return data.keys().hasAll(['author', 'title', 'description', 'urlToImage', 'publishedAt', 'content']) &&
-             (!data.keys().hasAny(['id']) || data.id is number) &&
-             data.author is string &&
-             data.title is string &&
-             data.description is string &&
-             (!data.keys().hasAny(['url']) || data.url is string) &&
-             data.urlToImage is string &&
+             data.author is string && data.author.size() > 0 &&
+             data.title is string && data.title.size() > 0 &&
+             data.description is string && data.description.size() > 0 &&
+             data.urlToImage is string && data.urlToImage.size() > 0 &&
              data.publishedAt is string &&
-             data.content is string;
+             data.content is string && data.content.size() > 0 &&
+             (!data.keys().hasAny(['url']) || data.url is string);
     }
 
     match /articles/{articleId} {

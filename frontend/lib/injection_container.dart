@@ -1,5 +1,12 @@
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'features/upload_article/data/datasources/remote/upload_article_remote_data_source.dart';
+import 'features/upload_article/data/repositories/upload_article_repository_impl.dart';
+import 'features/upload_article/domain/repositories/upload_article_repository.dart';
+import 'features/upload_article/domain/usecases/upload_article_usecase.dart';
+import 'features/upload_article/presentation/bloc/upload_article_bloc.dart';
 import 'package:news_app_clean_architecture/features/daily_news/data/data_sources/remote/news_api_service.dart';
 import 'package:news_app_clean_architecture/features/daily_news/data/repository/article_repository_impl.dart';
 import 'package:news_app_clean_architecture/features/daily_news/domain/repository/article_repository.dart';
@@ -223,4 +230,17 @@ Future<void> initializeDependencies() async {
 
   sl.registerFactory<StreamingBloc>(
       () => StreamingBloc(sl(), sl(), sl()));
+
+  // Upload Article
+  sl.registerSingleton<UploadArticleRemoteDataSource>(
+      UploadArticleRemoteDataSourceImpl(FirebaseFirestore.instance, FirebaseStorage.instance));
+      
+  sl.registerSingleton<UploadArticleRepository>(
+      UploadArticleRepositoryImpl(sl()));
+      
+  sl.registerSingleton<UploadArticleUseCase>(
+      UploadArticleUseCase(sl()));
+
+  sl.registerFactory<UploadArticleBloc>(
+      () => UploadArticleBloc(sl()));
 }

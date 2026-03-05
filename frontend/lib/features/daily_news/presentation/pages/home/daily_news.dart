@@ -17,6 +17,7 @@ import '../../../../profile/presentation/pages/profile_page.dart';
 import '../../../../settings/presentation/pages/settings_page.dart';
 import '../news_feed/news_feed_screen.dart';
 import '../../../../../../injection_container.dart';
+import '../../../../upload_article/presentation/pages/upload_article_page.dart';
 
 class DailyNews extends StatefulWidget {
   const DailyNews({Key? key}) : super(key: key);
@@ -97,16 +98,25 @@ class _DailyNewsState extends State<DailyNews> {
                 : _currentIndex == 1
                     ? NewsFeedContent(savedTitles: _savedTitles)
                     : _buildProfileBody(),
-            floatingActionButton: isFeedTab
+            floatingActionButton: _currentIndex == 0
                 ? Padding(
-                    padding: const EdgeInsets.only(bottom: 80),
+                    padding: const EdgeInsets.only(bottom: 20),
                     child: FloatingActionButton(
-                      onPressed: () => Navigator.pushNamed(context, '/BroadcasterScreen'),
-                      backgroundColor: Colors.red,
-                      child: const Icon(Icons.videocam_rounded, color: Colors.white),
+                      onPressed: () => Navigator.pushNamed(context, '/UploadArticle'),
+                      backgroundColor: Colors.blue,
+                      child: const Icon(Icons.add, color: Colors.white),
                     ),
                   )
-                : null,
+                : (_currentIndex == 1
+                    ? Padding(
+                        padding: const EdgeInsets.only(bottom: 80),
+                        child: FloatingActionButton(
+                          onPressed: () => Navigator.pushNamed(context, '/BroadcasterScreen'),
+                          backgroundColor: Colors.red,
+                          child: const Icon(Icons.videocam_rounded, color: Colors.white),
+                        ),
+                      )
+                    : null),
             bottomNavigationBar: _buildBottomNavBar(context),
           ),
         ),
@@ -332,46 +342,52 @@ class _DailyNewsState extends State<DailyNews> {
               ),
             );
           } else {
+            // 1. Hero / Breaking News
             slivers.add(
               SliverToBoxAdapter(
                 child: _buildHeroCard(context, articles[0]),
               ),
             );
-            slivers.add(SliverToBoxAdapter(child: _buildSectionHeader('Top Stories')));
-            slivers.add(
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                sliver: SliverGrid(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildGridCard(context, articles[index + 1]),
-                    childCount: articles.length - 1,
-                  ),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.72,
-                  ),
-                ),
-              ),
-            );
-            // Loading more indicator or end-of-list spacer
-            if (state is RemoteArticlesLoadingMore) {
+            // 2. Vertical List (Recent News)
+            if (state.articles!.length > 1) {
+              final int listCount = state.articles!.length > 4 ? 3 : state.articles!.length - 1;
               slivers.add(
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: CupertinoActivityIndicator(color: Colors.white),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => _buildNewsListTile(context, state.articles![index + 1]),
+                      childCount: listCount,
                     ),
                   ),
                 ),
               );
             }
-            // Bottom padding for nav bar
-            slivers.add(
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            );
+
+            // 3. Trending Now (Horizontal Scroll)
+            if (state.articles!.length > 4) {
+              slivers.add(SliverToBoxAdapter(child: _buildSectionHeader('Trending Now')));
+              slivers.add(
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 220,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: state.articles!.length - 4,
+                      itemBuilder: (context, index) {
+                        return Container(
+                          width: 160,
+                          margin: const EdgeInsets.only(right: 12),
+                          child: _buildGridCard(context, state.articles![index + 4]),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              );
+              slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 100))); // Bottom padding
+            }
           }
         } else {
           slivers.add(const SliverToBoxAdapter(child: SizedBox()));
@@ -396,6 +412,7 @@ class _DailyNewsState extends State<DailyNews> {
       },
     );
   }
+
 
   // ── Category chips ──────────────────────────────────────────────────────────
 
@@ -512,21 +529,20 @@ class _DailyNewsState extends State<DailyNews> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white24),
+                        color: const Color(0xFFE53935), // Red color for BREAKING
+                        borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Text(
-                        'TOP STORY',
+                        'BREAKING',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.4,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     // Title
                     Text(
                       article.title ?? '',
@@ -569,6 +585,101 @@ class _DailyNewsState extends State<DailyNews> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // ── News List Tile ──────────────────────────────────────────────────────────
+
+  Widget _buildNewsListTile(BuildContext context, ArticleEntity article) {
+    final String imageUrl = article.urlToImage ?? '';
+    final bool hasImage = imageUrl.isNotEmpty &&
+        imageUrl != kDefaultImage &&
+        Uri.tryParse(imageUrl)?.hasAbsolutePath == true;
+
+    return GestureDetector(
+      onTap: () => _onArticlePressed(context, article),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: _surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _border),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image (Left side)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 100,
+                height: 80,
+                child: hasImage
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => Container(color: _border),
+                        errorWidget: (_, __, ___) => Container(color: _border),
+                      )
+                    : Container(color: _border, child: const Icon(Icons.image, color: Colors.white24)),
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Tag / Source
+                  Row(
+                    children: [
+                      Container(
+                        width: 3,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE53935),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          (article.author?.isNotEmpty == true ? article.author! : 'News').toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        _formatDate(article.publishedAt),
+                        style: const TextStyle(color: Colors.white38, fontSize: 10),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    article.title ?? '',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

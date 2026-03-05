@@ -25,11 +25,12 @@ class ArticleModel extends ArticleEntity {
 
   factory ArticleModel.fromJson(Map < String, dynamic > map) {
     return ArticleModel(
-      author: map['author'] ?? "",
+      author: map['author'] is Map ? map['author']['name'] ?? "" : map['author'] ?? "", // GNews returns author as {name: ...} sometimes
       title: map['title'] ?? "",
       description: map['description'] ?? "",
       url: map['url'] ?? "",
-      urlToImage: map['urlToImage'] != null && map['urlToImage'] != "" ? map['urlToImage'] : null,
+      // Support both NewsAPI ('urlToImage') and GNews ('image')
+      urlToImage: map['urlToImage'] ?? map['image'] ?? null,
       publishedAt: map['publishedAt'] ?? "",
       content: map['content'] ?? "",
     );
