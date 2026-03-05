@@ -7,9 +7,7 @@ part of 'news_api_service.dart';
 // **************************************************************************
 
 class _NewsApiService implements NewsApiService {
-  _NewsApiService(this._dio, {this.baseUrl}) {
-    baseUrl ??= 'https://newsapi.org/v2';
-  }
+  _NewsApiService(this._dio, {this.baseUrl});
 
   final Dio _dio;
 
@@ -20,11 +18,11 @@ class _NewsApiService implements NewsApiService {
       {apiKey, country, category, page, pageSize}) async {
     const _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{
-      r'token': apiKey, // Manual fix: using 'token' instead of 'apiKey' for GNews
+      r'token': apiKey,
       r'country': country,
       r'category': category,
       r'page': page,
-      r'pageSize': pageSize
+      r'max': pageSize
     };
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
@@ -34,7 +32,7 @@ class _NewsApiService implements NewsApiService {
             Options(method: 'GET', headers: _headers, extra: _extra)
                 .compose(_dio.options, '/top-headlines',
                     queryParameters: queryParameters, data: _data)
-                .copyWith(baseUrl: baseUrl ?? 'https://gnews.io/api/v4'))); // Manual fix: GNews URL
+                .copyWith(baseUrl: baseUrl ?? _dio.options.baseUrl)));
     List<ArticleModel> value = _result.data!['articles']
         .map<ArticleModel>((dynamic i) => ArticleModel.fromJson(i as Map<String, dynamic>))
         .toList();

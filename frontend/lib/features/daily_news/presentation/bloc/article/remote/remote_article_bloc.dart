@@ -103,11 +103,7 @@ class RemoteArticlesBloc
 
   Future<void> onRefreshArticles(
       RefreshArticles event, Emitter<RemoteArticlesState> emit) async {
-    if (_isCooldownActive(_refreshCooldown)) {
-      // Still emit current data so RefreshIndicator completes
-      await _applyCurrentFilterAndEmit(emit);
-      return;
-    }
+    // Force refresh, ignore cooldown
     _currentPage = 1;
     _hasMore = true;
     final dataState = await _getArticleUseCase(
@@ -171,30 +167,32 @@ class RemoteArticlesBloc
 
   Future<void> _applyCurrentFilterAndEmit(
       Emitter<RemoteArticlesState> emit) async {
-    if (_currentFilter == 'All') {
-      final personalized =
-          await _getPersonalizedFeedUseCase(params: _allFetchedArticles);
-      emit(RemoteArticlesDone(personalized, hasMore: _hasMore));
-    } else {
-      final filtered = _allFetchedArticles.where((article) {
-        final title = (article.title ?? '').toLowerCase();
-        final url = (article.url ?? '').toLowerCase();
-        String cat = 'general';
-        if (url.contains('tech') || title.contains('tech')) {
-          cat = 'Technology';
-        } else if (url.contains('sport') || title.contains('sport')) {
-          cat = 'Sports';
-        } else if (url.contains('politic') || title.contains('politic')) {
-          cat = 'Politics';
-        } else if (url.contains('finance') ||
-            title.contains('market') ||
-            title.contains('economy')) {
-          cat = 'Finance';
-        }
+      List<ArticleEntity> filtered;
+      if (_currentFilter == 'All') {
+         // Using direct list instead of personalized usecase to speed up and debug
+         filtered = List.from(_allFetchedArticles);
+      } else {
+         filtered = _allFetchedArticles.where((article) {
+          final title = (article.title ?? '').toLowerCase();
+          final url = (article.url ?? '').toLowerCase();
+          String cat = 'general';
+          
+          if (url.contains('tech') || title.contains('tech') || title.contains('flutter') || title.contains('code')) {
+            cat = 'Technology';
+          } else if (url.contains('sport') || title.contains('sport') || title.contains('football') || title.contains('match')) {
+            cat = 'Sports';
+          } else if (url.contains('politic') || title.contains('politic') || title.contains('election')) {
+            cat = 'Politics';
+          } else if (url.contains('finance') || title.contains('market') || title.contains('money') || title.contains('invest')) {
+            cat = 'Finance';
+          } else {
+             cat = 'general'; // Default fallback
+          }
 
-        return cat.toLowerCase() == _currentFilter.toLowerCase();
-      }).toList();
+          if (_currentFilter.toLowerCase() == 'all') return true;
+          return cat.toLowerCase() == _currentFilter.toLowerCase();
+        }).toList();
+      }
       emit(RemoteArticlesDone(filtered, hasMore: _hasMore));
-    }
   }
 }

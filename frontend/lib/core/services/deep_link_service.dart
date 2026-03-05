@@ -16,19 +16,32 @@ class DeepLinkService {
         _getStreamByIdUseCase = getStreamByIdUseCase;
 
   Future<void> init() async {
-    // Handle link that launched the app (cold start)
-    final initialUri = await _appLinks.getInitialLink();
-    if (initialUri != null) _handleUri(initialUri);
+    try {
+      // Handle link that launched the app (cold start)
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) _handleUri(initialUri);
+    } catch (e) {
+      debugPrint('DeepLinkService: Error getting initial link: \$e');
+    }
 
     // Handle links while app is running (warm start)
-    _sub = _appLinks.uriLinkStream.listen(_handleUri);
+    _sub = _appLinks.uriLinkStream.listen(
+      _handleUri,
+      onError: (err) {
+        debugPrint('DeepLinkService: Error in link stream: \$err');
+      },
+    );
   }
 
   void _handleUri(Uri uri) {
-    // Expected format: newsapp://stream/{streamId}
-    if (uri.host == 'stream' && uri.pathSegments.isNotEmpty) {
-      final streamId = uri.pathSegments.first;
-      _navigateToStream(streamId);
+    try {
+      // Expected format: newsapp://stream/{streamId}
+      if (uri.host == 'stream' && uri.pathSegments.isNotEmpty) {
+        final streamId = uri.pathSegments.first;
+        _navigateToStream(streamId);
+      }
+    } catch (e) {
+      debugPrint('DeepLinkService: Error handling URI: \$e');
     }
   }
 

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -54,9 +55,10 @@ class _NewsFeedContentState extends State<NewsFeedContent> {
 
   List<FeedItem> _buildFeedItems(List<ArticleEntity> articles, List<LiveStreamEntity> streams) {
     final items = <FeedItem>[];
-    for (final stream in streams) {
-      items.add(FeedItem.liveStream(stream));
-    }
+    // Live streams disabled for now to simplify feed
+    // for (final stream in streams) {
+    //   items.add(FeedItem.liveStream(stream));
+    // }
     for (final article in articles) {
       items.add(FeedItem.article(article));
     }
@@ -68,14 +70,11 @@ class _NewsFeedContentState extends State<NewsFeedContent> {
     return Container(
       color: Colors.black,
       child: SafeArea(
-        child: BlocBuilder<StreamingBloc, StreamingState>(
-          builder: (context, streamingState) {
-            final liveStreams = streamingState is ActiveStreamsLoaded
-                ? streamingState.streams
-                : <LiveStreamEntity>[];
-
-            return BlocBuilder<RemoteArticlesBloc, RemoteArticlesState>(
+        child: BlocBuilder<RemoteArticlesBloc, RemoteArticlesState>(
               builder: (context, state) {
+                // Ignore streaming state for now
+                final liveStreams = <LiveStreamEntity>[];
+
                 if (state is RemoteArticlesLoading) {
                   return const Center(
                     child: CupertinoActivityIndicator(color: Colors.white),
@@ -170,9 +169,7 @@ class _NewsFeedContentState extends State<NewsFeedContent> {
 
                 return const SizedBox();
               },
-            );
-          },
-        ),
+            ),
       ),
     );
   }
@@ -511,7 +508,6 @@ class _NewsCard extends StatelessWidget {
         Positioned(
           top: 16,
           left: 16,
-          right: 80,
           child: _TopBar(author: article.author),
         ),
         Positioned(
@@ -548,19 +544,16 @@ class _BackgroundImage extends StatelessWidget {
         ),
       );
     }
-    return Image.network(
-      imageUrl,
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
       fit: BoxFit.cover,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          color: const Color(0xFF1A1A2E),
-          child: const Center(
-            child: CircularProgressIndicator(color: Colors.white54),
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) => Container(
+      placeholder: (context, url) => Container(
+        color: const Color(0xFF1A1A2E),
+        child: const Center(
+          child: CupertinoActivityIndicator(color: Colors.white54),
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
         color: const Color(0xFF1A1A2E),
         child: const Center(
           child: Icon(Icons.broken_image, color: Colors.white38, size: 60),
@@ -606,38 +599,20 @@ class _TopBar extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          padding: const EdgeInsets.only(left: 4, right: 14, top: 4, bottom: 4),
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.15),
-                ),
-                child: const Icon(Icons.newspaper, color: Colors.white, size: 16),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  author ?? 'News',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.15),
+            ),
+            child: const Icon(Icons.newspaper, color: Colors.white, size: 16),
           ),
         ),
       ),

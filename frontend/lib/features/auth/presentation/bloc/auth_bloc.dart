@@ -26,7 +26,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     this._getCurrentUserUseCase,
     this._signInWithGoogleUseCase,
     this._signInWithGithubUseCase,
-  ) : super(AuthInitial()) {
+  ) : super(AuthLoading()) {
     on<CheckAuthStatusEvent>(_onCheckAuthStatus);
     on<SignInEvent>(_onSignIn);
     on<SignInWithGoogleEvent>(_onSignInWithGoogle);

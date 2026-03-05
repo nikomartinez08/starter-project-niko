@@ -80,9 +80,10 @@ class _BroadcasterScreenState extends State<BroadcasterScreen> {
   }
 
   Future<void> _endStream() async {
-    if (_activeStream?.id != null) {
-      context.read<StreamingBloc>().add(EndStream(_activeStream!.id!));
-      _activeStream = null; // Prevent dispose from ending again
+    final streamId = _activeStream?.id;
+    if (streamId != null) {
+      context.read<StreamingBloc>().add(EndStream(streamId));
+      setState(() => _activeStream = null); // Update state to allow pop
     }
     await _agoraService.leaveChannel();
     if (mounted) Navigator.of(context).pop();
@@ -121,11 +122,43 @@ class _BroadcasterScreenState extends State<BroadcasterScreen> {
           );
         }
       },
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
+      child: PopScope(
+        canPop: !_isPreview && _activeStream == null,
+        onPopInvoked: (didPop) async {
+          if (didPop) return;
+          if (!_isPreview && _activeStream != null) {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                backgroundColor: const Color(0xFF1C1C1E),
+                title: const Text('End Stream?', style: TextStyle(color: Colors.white)),
+                content: const Text('Are you sure you want to end the live stream?', style: TextStyle(color: Colors.white70)),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('End Stream', style: TextStyle(color: Colors.red)),
+                  ),
+                ],
+              ),
+            );
+            if (confirm == true) {
+              await _endStream();
+            }
+          } else {
+            // Should verify if we need to cleanup previews
+             await _agoraService.dispose();
+             if (mounted) Navigator.of(context).pop();
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
             // Camera preview
             if (_isInitialized)
               AgoraVideoView(
@@ -251,6 +284,7 @@ class _BroadcasterScreenState extends State<BroadcasterScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

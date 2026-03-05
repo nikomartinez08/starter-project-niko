@@ -407,32 +407,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
             const SizedBox(height: 12),
 
-            // GitHub button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: kBorder),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  foregroundColor: kPrimaryText,
-                ),
-                onPressed: () {
-                  context.read<AuthBloc>().add(SignInWithGithubEvent());
-                },
-                icon: const Icon(Icons.code, size: 24),
-                label: const Text(
-                  "Registrarse con GitHub",
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-
             // Login link
             const SizedBox(height: 24),
             Center(

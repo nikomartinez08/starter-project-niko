@@ -18,14 +18,17 @@ class RemoteArticlesLoading extends RemoteArticlesState {
 
 class RemoteArticlesDone extends RemoteArticlesState {
   final bool hasMore;
-  const RemoteArticlesDone(List<ArticleEntity> article, {this.hasMore = true}) : super(articles: article);
+  final String timestamp; // Force state change
+  RemoteArticlesDone(List<ArticleEntity> article, {this.hasMore = true}) 
+      : timestamp = DateTime.now().toIso8601String(),
+        super(articles: article);
 
   @override
-  List<Object> get props => [articles ?? [], hasMore];
+  List<Object> get props => [articles ?? [], hasMore, timestamp];
 }
 
 class RemoteArticlesLoadingMore extends RemoteArticlesDone {
-  const RemoteArticlesLoadingMore(super.articles, {super.hasMore});
+  RemoteArticlesLoadingMore(super.articles, {super.hasMore});
 }
 
 class RemoteArticlesError extends RemoteArticlesState {

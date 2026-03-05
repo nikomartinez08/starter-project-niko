@@ -11,6 +11,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ProfileBloc(this._getProfileDataUseCase, this._updateProfileDataUseCase) : super(ProfileLoading()) {
     on<GetProfileEvent>(_onGetProfile);
     on<UpdateProfileEvent>(_onUpdateProfile);
+    on<RefreshProfileEvent>(_onRefreshProfile);
   }
 
   Future<void> _onGetProfile(GetProfileEvent event, Emitter<ProfileState> emit) async {
@@ -20,6 +21,20 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       emit(ProfileLoaded(profile));
     } catch (e) {
       emit(ProfileError(e.toString()));
+    }
+  }
+
+  Future<void> _onRefreshProfile(RefreshProfileEvent event, Emitter<ProfileState> emit) async {
+    try {
+      final profile = await _getProfileDataUseCase.call();
+      emit(ProfileLoaded(profile));
+    } catch (e) {
+      if (state is ProfileLoaded) {
+        // Re-emit current state to stop loading indicators if we were using BlocConsumer
+        emit(state); 
+      } else {
+        emit(ProfileError(e.toString()));
+      }
     }
   }
 

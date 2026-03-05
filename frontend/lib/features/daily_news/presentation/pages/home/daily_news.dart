@@ -154,7 +154,7 @@ class _DailyNewsState extends State<DailyNews> {
                 splashRadius: 22,
               ),
               IconButton(
-                icon: const Icon(Icons.favorite_rounded, color: Color(0xFFFF3B5C), size: 22),
+                icon: const Icon(Icons.bookmark_rounded, color: Color(0xFFFF3B5C), size: 22),
                 onPressed: () => _onShowFavoritesViewTapped(context),
                 splashRadius: 22,
               ),
@@ -364,29 +364,60 @@ class _DailyNewsState extends State<DailyNews> {
               );
             }
 
-            // 3. Trending Now (Horizontal Scroll)
+            // 3. Trending Now (Horizontal Scroll) - Limit to 5 items
             if (state.articles!.length > 4) {
               slivers.add(SliverToBoxAdapter(child: _buildSectionHeader('Trending Now')));
-              slivers.add(
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 220,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: state.articles!.length - 4,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          width: 160,
-                          margin: const EdgeInsets.only(right: 12),
-                          child: _buildGridCard(context, state.articles![index + 4]),
-                        );
-                      },
+              final int trendingCount = (state.articles!.length - 4).clamp(0, 5);
+              
+              if (trendingCount > 0) {
+                slivers.add(
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 220,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: trendingCount,
+                        itemBuilder: (context, index) {
+                          return Container(
+                            width: 160,
+                            margin: const EdgeInsets.only(right: 12),
+                            child: _buildGridCard(context, state.articles![index + 4]),
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
-              );
-              slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 100))); // Bottom padding
+                );
+              }
+              
+              // 4. More News (Grid Layout "Tarjetitas")
+              // Vertical grid scrolling with main page
+              if (state.articles!.length > 9) {
+                slivers.add(SliverToBoxAdapter(child: _buildSectionHeader('More News')));
+                slivers.add(
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverGrid(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 0.75, // Slightly shorter for better fit
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          return _buildMasonryCard(context, state.articles![index + 9]);
+                        },
+                        childCount: state.articles!.length - 9,
+                      ),
+                    ),
+                  ),
+                );
+                slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 100))); // Bottom padding
+              } else {
+                 slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 100)));
+              }
             }
           }
         } else {
@@ -697,6 +728,160 @@ class _DailyNewsState extends State<DailyNews> {
           fontSize: 18,
           fontWeight: FontWeight.bold,
           letterSpacing: -0.3,
+        ),
+      ),
+    );
+  }
+
+  // ── Masonry Grid Card (Tarjetitas style) ───────────────────────────────────
+
+  Widget _buildMasonryCard(BuildContext context, ArticleEntity article) {
+    final String imageUrl = article.urlToImage ?? '';
+    final bool hasImage = imageUrl.isNotEmpty &&
+        imageUrl != kDefaultImage &&
+        Uri.tryParse(imageUrl)?.hasAbsolutePath == true;
+    
+    // Heuristic for badge
+    final isLive = article.title!.toLowerCase().contains('live') || article.description!.toLowerCase().contains('live');
+    final badgeText = isLive ? 'EN VIVO' : 'ANÁLISIS';
+    final badgeColor = isLive ? const Color(0xFFE53935) : Colors.white.withValues(alpha: 0.9);
+    final badgeTextColor = isLive ? Colors.white : Colors.black;
+
+    return GestureDetector(
+      onTap: () => _onArticlePressed(context, article),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _surface,
+          borderRadius: BorderRadius.circular(16),
+          // No border for cleaner look, or subtle border
+          border: Border.all(color: _border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image Area
+            Stack(
+              children: [
+                SizedBox(
+                  height: 110,
+                  width: double.infinity,
+                  child: hasImage
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Container(color: _border),
+                          errorWidget: (_, __, ___) => Container(color: _border),
+                        )
+                      : Container(color: _border, child: const Icon(Icons.image, color: Colors.white24)),
+                ),
+                // Badge
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: badgeColor,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: TextStyle(
+                        color: badgeTextColor,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+                // Overlay text on image (optional, like right card in example)
+                if (!isLive)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+                        ),
+                      ),
+                      child: Text(
+                        '$badgeText · Hace 2h', // Mock data for now, real time logic below
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            
+            // Content Area
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Red bar + time (Left card style)
+                    if (isLive) ...[
+                      Row(
+                        children: [
+                          Container(
+                            width: 2,
+                            height: 10,
+                            color: const Color(0xFFE53935),
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Hace 1h',
+                            style: TextStyle(color: Color(0xFF8E8E93), fontSize: 10),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                    ],
+                    
+                    // Title
+                    Expanded(
+                      child: Text(
+                        article.title ?? '',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                          letterSpacing: -0.1,
+                        ),
+                        maxLines: 4, 
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    
+                    // Footer (Icon + Time + Dots)
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.trending_up, size: 14, color: Color(0xFF8E8E93)),
+                        const SizedBox(width: 4),
+                        const Expanded(
+                          child: Text(
+                            'Hace 1h',
+                            style: TextStyle(color: Color(0xFF8E8E93), fontSize: 10),
+                          ),
+                        ),
+                        const Icon(Icons.more_horiz, size: 14, color: Color(0xFF8E8E93)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

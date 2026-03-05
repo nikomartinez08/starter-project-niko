@@ -26,6 +26,7 @@ class _UploadArticlePageState extends State<UploadArticlePage> {
   final _scrollController = ScrollController();
   String? _selectedImagePath;
   final ImagePicker _picker = ImagePicker();
+  bool _isPickingImage = false;
 
   bool _isPreviewMode = false;
   int? _currentDraftId;
@@ -78,11 +79,25 @@ class _UploadArticlePageState extends State<UploadArticlePage> {
   }
 
   Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
+    if (_isPickingImage) return;
+    
+    setState(() {
+      _isPickingImage = true;
+    });
+
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() {
+          _selectedImagePath = image.path;
+          _hasUnsavedChanges = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+    } finally {
       setState(() {
-        _selectedImagePath = image.path;
-        _hasUnsavedChanges = true;
+        _isPickingImage = false;
       });
     }
   }

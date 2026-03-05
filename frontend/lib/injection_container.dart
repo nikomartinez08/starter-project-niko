@@ -104,7 +104,11 @@ Future<void> initializeDependencies() async {
   sl.registerSingleton<AppDatabase>(database);
 
   // Dio
-  sl.registerSingleton<Dio>(Dio());
+  final dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 10),
+  ));
+  sl.registerSingleton<Dio>(dio);
   
   // Supabase
   sl.registerSingleton<SupabaseClient>(Supabase.instance.client);
@@ -147,7 +151,8 @@ Future<void> initializeDependencies() async {
       DraftRepositoryImpl(database.draftDAO));
 
   // Dependencies
-  sl.registerSingleton<NewsApiService>(NewsApiService(sl()));
+  // Explicitly passing GNews URL to avoid generated code default (newsapi.org)
+  sl.registerSingleton<NewsApiService>(NewsApiService(sl(), baseUrl: 'https://gnews.io/api/v4'));
 
   sl.registerSingleton<ArticleRepository>(ArticleRepositoryImpl(sl(), sl(), sl()));
 

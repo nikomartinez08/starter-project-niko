@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../injection_container.dart';
 import '../../../domain/entities/article.dart';
-import '../../bloc/article/local/local_article_bloc.dart';
-import '../../bloc/article/local/local_article_event.dart';
-import '../../bloc/article/local/local_article_state.dart';
+import '../../../../favorites/domain/entities/favorite_article.dart';
+import '../../../../favorites/presentation/bloc/favorites_bloc.dart';
+import '../../../../favorites/presentation/bloc/favorites_event.dart';
+import '../../../../favorites/presentation/bloc/favorites_state.dart';
 
 class ArticleDetailsView extends StatefulWidget {
   final ArticleEntity? article;
@@ -23,22 +24,15 @@ class _ArticleDetailsViewState extends State<ArticleDetailsView> {
   static const _secondaryText = Color(0xFF8E8E93);
   static const _mutedText = Color(0xFF636366);
 
-  late final LocalArticleBloc _localBloc;
   bool _isSaved = false;
 
   @override
   void initState() {
     super.initState();
-    _localBloc = sl<LocalArticleBloc>()..add(const GetSavedArticles());
+    context.read<FavoritesBloc>().add(GetFavorites());
   }
 
-  @override
-  void dispose() {
-    _localBloc.close();
-    super.dispose();
-  }
-
-  bool _checkIfSaved(List<ArticleEntity>? savedArticles) {
+  bool _checkIfSaved(List<FavoriteArticleEntity>? savedArticles) {
     if (savedArticles == null || widget.article == null) return false;
     final title = widget.article!.title;
     return savedArticles.any((a) => a.title == title);
@@ -46,15 +40,19 @@ class _ArticleDetailsViewState extends State<ArticleDetailsView> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: _localBloc,
-      child: BlocListener<LocalArticleBloc, LocalArticlesState>(
-        listener: (context, state) {
-          if (state is LocalArticlesDone) {
-            setState(() => _isSaved = _checkIfSaved(state.articles));
-          }
-        },
-        child: Scaffold(
+    return BlocConsumer<FavoritesBloc, FavoritesState>(
+      listener: (context, state) {
+        if (state is FavoritesLoaded) {
+          setState(() => _isSaved = _checkIfSaved(state.favorites));
+        }
+      },
+      builder: (context, state) {
+        // Fallback check if state is already loaded but listener didn't fire (e.g. initial build)
+        if (state is FavoritesLoaded && !_isSaved) {
+           _isSaved = _checkIfSaved(state.favorites);
+        }
+        
+        return Scaffold(
           backgroundColor: _bg,
           body: Stack(
             children: [
@@ -89,8 +87,8 @@ class _ArticleDetailsViewState extends State<ArticleDetailsView> {
               ),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -211,31 +209,37 @@ class _ArticleDetailsViewState extends State<ArticleDetailsView> {
 
   void _toggleSave(BuildContext context) {
     if (widget.article == null) return;
-    if (_isSaved) {
-      _localBloc.add(RemoveArticle(widget.article!));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Removed from library', style: TextStyle(color: Colors.white)),
-          backgroundColor: _surface,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          duration: const Duration(seconds: 2),
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+    
+    final favorite = FavoriteArticleEntity(
+      externalId: widget.article!.url ?? widget.article!.title ?? '',
+      author: widget.article!.author ?? 'Unknown',
+      title: widget.article!.title ?? '',
+      description: widget.article!.description ?? '',
+      url: widget.article!.url ?? '',
+      urlToImage: widget.article!.urlToImage ?? '',
+      savedAt: DateTime.now(),
+      content: widget.article!.content,
+      publishedAt: widget.article!.publishedAt,
+    );
+
+    context.read<FavoritesBloc>().add(ToggleFavoriteEvent(favorite));
+    
+    // Optimistic UI update
+    setState(() => _isSaved = !_isSaved);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isSaved ? 'Saved to your library' : 'Removed from library', 
+          style: const TextStyle(color: Colors.white)
         ),
-      );
-    } else {
-      _localBloc.add(SaveArticle(widget.article!));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Saved to your library', style: TextStyle(color: Colors.white)),
-          backgroundColor: _surface,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          duration: const Duration(seconds: 2),
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        ),
-      );
-    }
+        backgroundColor: _surface,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 2),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      ),
+    );
   }
 
   String _formatDate(String? dateStr) {

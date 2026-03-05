@@ -10,10 +10,10 @@ abstract class NewsApiService {
   
   @GET('/top-headlines')
   Future<HttpResponse<List<ArticleModel>>> getNewsArticles({
-    @Query("token") String ? apiKey, // Changed parameter name to 'token' for GNews
+    @Query("token") String ? apiKey,
     @Query("country") String ? country,
     @Query("category") String ? category,
     @Query("page") int ? page,
-    @Query("pageSize") int ? pageSize,
+    @Query("max") int ? pageSize,
   });
 }

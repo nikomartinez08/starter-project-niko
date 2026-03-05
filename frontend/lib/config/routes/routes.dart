@@ -22,12 +22,13 @@ import '../../features/streaming/presentation/pages/broadcaster_screen.dart';
 import '../../features/streaming/presentation/pages/viewer_screen.dart';
 import '../../features/streaming/domain/entities/live_stream_entity.dart';
 import '../../injection_container.dart';
+import '../../features/auth/presentation/pages/auth_gate.dart';
 
 class AppRoutes {
   static Route onGenerateRoutes(RouteSettings settings) {
     switch (settings.name) {
       case '/':
-        return _materialRoute(const DailyNews());
+        return _materialRoute(const AuthGate());
 
       case '/Login':
         return _materialRoute(const LoginPage());

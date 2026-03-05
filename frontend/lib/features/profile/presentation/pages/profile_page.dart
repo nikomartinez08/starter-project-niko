@@ -49,20 +49,32 @@ class ProfilePage extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context, UserProfileDataEntity profile) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 24),
-            _buildHeader(context, profile),
-            const SizedBox(height: 24),
-            _buildStats(profile),
-            const SizedBox(height: 32),
-            _buildArticlesSection(context, profile),
-            const SizedBox(height: 40),
-          ],
+    return RefreshIndicator(
+      onRefresh: () async {
+        context.read<ProfileBloc>().add(RefreshProfileEvent());
+        // Wait a bit to ensure the refresh feels responsive, 
+        // as the bloc might not emit a new state if data is same or fails.
+        // A better way would be using a Completer passed in the event.
+        await Future.delayed(const Duration(seconds: 1)); 
+      },
+      color: Colors.white,
+      backgroundColor: kSurface,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 24),
+              _buildHeader(context, profile),
+              const SizedBox(height: 24),
+              _buildStats(profile),
+              const SizedBox(height: 32),
+              _buildArticlesSection(context, profile),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
