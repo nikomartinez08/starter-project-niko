@@ -238,7 +238,7 @@ Future<void> initializeDependencies() async {
 
   // Upload Article
   sl.registerSingleton<UploadArticleRemoteDataSource>(
-      UploadArticleRemoteDataSourceImpl(FirebaseFirestore.instance, FirebaseStorage.instance));
+      UploadArticleRemoteDataSourceImpl(FirebaseFirestore.instance, sl<SupabaseClient>()));
       
   sl.registerSingleton<UploadArticleRepository>(
       UploadArticleRepositoryImpl(sl()));

@@ -487,105 +487,107 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
       child: Container(
         padding: const EdgeInsets.all(28),
         constraints: const BoxConstraints(maxWidth: 400),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Editar Perfil",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: kPrimaryText,
-                letterSpacing: -0.5,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Editar Perfil",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: kPrimaryText,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 28),
-            Center(
-              child: GestureDetector(
-                onTap: _pickImage,
-                child: Stack(
-                  children: [
-                    Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: kBorder, width: 2),
-                      ),
-                      child: ClipOval(
-                        child: _imageFile != null
-                            ? Image.file(_imageFile!, fit: BoxFit.cover)
-                            : (widget.profile.photoUrl != null
-                                ? Image.network(widget.profile.photoUrl!, fit: BoxFit.cover)
-                                : const Icon(Icons.person, size: 48, color: kAccent)),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
+              const SizedBox(height: 28),
+              Center(
+                child: GestureDetector(
+                  onTap: _pickImage,
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 90,
+                        height: 90,
                         decoration: BoxDecoration(
-                          color: Colors.white,
                           shape: BoxShape.circle,
-                          border: Border.all(color: kSurface, width: 2),
+                          border: Border.all(color: kBorder, width: 2),
                         ),
-                        child: const Icon(Icons.camera_alt, color: kBackground, size: 14),
+                        child: ClipOval(
+                          child: _imageFile != null
+                              ? Image.file(_imageFile!, fit: BoxFit.cover)
+                              : (widget.profile.photoUrl != null
+                                  ? Image.network(widget.profile.photoUrl!, fit: BoxFit.cover)
+                                  : const Icon(Icons.person, size: 48, color: kAccent)),
+                        ),
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: kSurface, width: 2),
+                          ),
+                          child: const Icon(Icons.camera_alt, color: kBackground, size: 14),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 28),
-            _buildTextField(
-              controller: _nameController,
-              label: "Nombre completo",
-              hint: "Ej. Juan Pérez",
-            ),
-            const SizedBox(height: 20),
-            _buildTextField(
-              controller: _titleController,
-              label: "Cargo / Título",
-              hint: "Ej. Editor Senior",
-            ),
-            const SizedBox(height: 28),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: _isUploading ? null : () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      foregroundColor: kSecondaryText,
+              const SizedBox(height: 28),
+              _buildTextField(
+                controller: _nameController,
+                label: "Nombre completo",
+                hint: "Ej. Juan Pérez",
+              ),
+              const SizedBox(height: 20),
+              _buildTextField(
+                controller: _titleController,
+                label: "Cargo / Título",
+                hint: "Ej. Editor Senior",
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: _isUploading ? null : () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        foregroundColor: kSecondaryText,
+                      ),
+                      child: const Text("Cancelar"),
                     ),
-                    child: const Text("Cancelar"),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isUploading ? null : _save,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isUploading ? null : _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: _isUploading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                            )
+                          : const Text("Guardar", style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
-                    child: _isUploading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
-                          )
-                        : const Text("Guardar", style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
