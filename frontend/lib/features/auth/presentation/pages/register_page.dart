@@ -206,7 +206,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        "Comienza tu prueba gratuita hoy.",
+                        "¿Qué esperas para comenzar?",
                         style: TextStyle(
                           fontSize: 15,
                           color: kSecondaryText,

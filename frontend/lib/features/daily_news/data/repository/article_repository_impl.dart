@@ -13,6 +13,8 @@ import 'package:news_app_clean_architecture/core/resources/data_state.dart';
 import 'package:news_app_clean_architecture/features/daily_news/domain/entities/article.dart';
 import 'package:news_app_clean_architecture/features/daily_news/domain/repository/article_repository.dart';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../data_sources/remote/news_api_service.dart';
 
 class ArticleRepositoryImpl implements ArticleRepository {
@@ -20,10 +22,40 @@ class ArticleRepositoryImpl implements ArticleRepository {
   final AppDatabase _appDatabase;
   final SharedPreferences _prefs;
   final SupabaseClient _supabaseClient = Supabase.instance.client;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   static const _cacheKey = 'cached_articles';
 
   ArticleRepositoryImpl(this._newsApiService, this._appDatabase, this._prefs);
+
+  @override
+  Future<void> deleteAllMyArticles() async {
+    final user = _supabaseClient.auth.currentUser;
+    if (user == null) return;
+
+    // Delete from Firestore
+    final query = await _firestore
+        .collection('articles')
+        .where('userId', isEqualTo: user.id) // Correctly filtering by UID
+        .get();
+
+    for (final doc in query.docs) {
+      // Also delete from Supabase Storage if urlToImage exists and belongs to us
+      final data = doc.data();
+      final url = data['urlToImage'] as String?;
+      if (url != null && url.contains('supabase.co')) {
+        try {
+          final path = url.split('/media/').last; // Extract path from URL
+          if (path.isNotEmpty) {
+             await _supabaseClient.storage.from('media').remove([path]);
+          }
+        } catch (_) {
+          // Ignore storage delete errors
+        }
+      }
+      await doc.reference.delete();
+    }
+  }
 
   @override
   Future<DataState<List<ArticleModel>>> getNewsArticles({int page = 1, int pageSize = 20}) async {

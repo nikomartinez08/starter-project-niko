@@ -162,7 +162,7 @@ Future<void> initializeDependencies() async {
   sl.registerSingleton<SignInWithGithubUseCase>(SignInWithGithubUseCase(sl()));
   sl.registerSingleton<SignUpUseCase>(SignUpUseCase(sl()));
   sl.registerSingleton<SignOutUseCase>(SignOutUseCase(sl()));
-  sl.registerSingleton<DeleteAccountUseCase>(DeleteAccountUseCase(sl()));
+  sl.registerSingleton<DeleteAccountUseCase>(DeleteAccountUseCase(sl(), sl()));
   sl.registerSingleton<GetCurrentUserUseCase>(GetCurrentUserUseCase(sl()));
 
   sl.registerSingleton<GetArticleUseCase>(GetArticleUseCase(sl()));

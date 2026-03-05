@@ -40,8 +40,10 @@ class UploadArticleRemoteDataSourceImpl implements UploadArticleRemoteDataSource
     }
 
     // 2. Create Article Document in Firestore
+    final user = _supabase.auth.currentUser;
     final articleData = {
       'author': article.author ?? 'Anonymous',
+      'userId': user?.id, // Store UID for ownership
       'title': article.title ?? '',
       'description': article.description ?? '',
       'content': article.content ?? '',

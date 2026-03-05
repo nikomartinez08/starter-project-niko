@@ -13,4 +13,6 @@ abstract class ArticleRepository {
   Future < void > removeArticle(ArticleEntity article);
 
   Future < void > createArticle(ArticleEntity article);
+
+  Future<void> deleteAllMyArticles();
 }
