@@ -197,7 +197,7 @@ class _ArticleDetailsViewState extends State<ArticleDetailsView> {
               ? MarkdownBody(
                   data: body,
                   selectable: true,
-                  styleSheet: MarkdownStyleSheet(
+                  styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
                     h1: const TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -222,11 +222,15 @@ class _ArticleDetailsViewState extends State<ArticleDetailsView> {
                     ),
                     strong: const TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      height: 1.85,
                     ),
                     em: const TextStyle(
                       color: Color(0xFFD0D0D0),
+                      fontSize: 16,
                       fontStyle: FontStyle.italic,
+                      height: 1.85,
                     ),
                     a: const TextStyle(color: Color(0xFF6B9FFF)),
                     del: TextStyle(color: Colors.grey[600]),

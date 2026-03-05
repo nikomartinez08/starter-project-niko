@@ -15,7 +15,7 @@ class MarkdownToolbar extends StatelessWidget {
     final selection = controller.selection;
 
     if (!selection.isValid || selection.isCollapsed) {
-      final insert = '$before text $after';
+      final insert = '${before}text$after';
       final newText =
           text.replaceRange(selection.baseOffset, selection.baseOffset, insert);
       controller.value = TextEditingValue(

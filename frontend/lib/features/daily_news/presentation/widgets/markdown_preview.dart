@@ -32,7 +32,7 @@ class MarkdownPreview extends StatelessWidget {
     return MarkdownBody(
       data: data,
       selectable: true,
-      styleSheet: MarkdownStyleSheet(
+      styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
         h1: const TextStyle(
           color: Colors.white,
           fontSize: 28,
@@ -54,8 +54,18 @@ class MarkdownPreview extends StatelessWidget {
           fontSize: 16,
           height: 1.75,
         ),
-        strong: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        em: const TextStyle(color: Color(0xFFD0D0D0), fontStyle: FontStyle.italic),
+        strong: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+          height: 1.75,
+        ),
+        em: const TextStyle(
+          color: Color(0xFFD0D0D0),
+          fontSize: 16,
+          fontStyle: FontStyle.italic,
+          height: 1.75,
+        ),
         a: const TextStyle(color: Color(0xFF6B9FFF)),
         del: TextStyle(color: Colors.grey[600]),
         listBullet: const TextStyle(color: Color(0xFF8E8E93), fontSize: 16),
